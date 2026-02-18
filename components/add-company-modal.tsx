@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { X, Upload } from "lucide-react"
+import { Upload } from "lucide-react"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -19,7 +20,7 @@ import {
 interface AddCompanyModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onAddCompany: (company: any) => void
+  onAddCompany: (company: any) => Promise<void> | void
 }
 
 const industryOptions = [
@@ -86,7 +87,15 @@ export function AddCompanyModal({
     }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const fileToBase64 = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result || ""))
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (
@@ -98,29 +107,43 @@ export function AddCompanyModal({
       return
     }
 
-    onAddCompany({
-      name: formData.companyName,
-      industry: formData.industry,
-      strength: formData.strength,
-      contactPerson: formData.contactPerson,
-      designation: formData.designation,
-      email: formData.email,
-      contactNumber: `${formData.countryCode} ${formData.contactNumber}`,
-    })
+    try {
+      let companyImage = ""
+      if (formData.image) {
+        companyImage = await fileToBase64(formData.image)
+      }
 
-    setFormData({
-      companyName: "",
-      industry: "",
-      strength: "",
-      image: null,
-      contactPerson: "",
-      designation: "",
-      email: "",
-      contactNumber: "",
-      countryCode: "+92",
-    })
+      await onAddCompany({
+        companyName: formData.companyName,
+        industry: formData.industry,
+        strength: formData.strength,
+        companyImage,
+        personName: formData.contactPerson,
+        designation: formData.designation,
+        email: formData.email,
+        contactNumber: `${formData.countryCode} ${formData.contactNumber}`,
+      })
 
-    onOpenChange(false)
+      setFormData({
+        companyName: "",
+        industry: "",
+        strength: "",
+        image: null,
+        contactPerson: "",
+        designation: "",
+        email: "",
+        contactNumber: "",
+        countryCode: "+92",
+      })
+
+      onOpenChange(false)
+    } catch (error: unknown) {
+      const message =
+        typeof error === "object" && error && "message" in error
+          ? String((error as { message: string }).message)
+          : "Failed to add company"
+      alert(message)
+    }
   }
 
   return (
@@ -130,6 +153,9 @@ export function AddCompanyModal({
           <DialogTitle className="text-xl font-semibold">
             Add New Company
           </DialogTitle>
+          <DialogDescription>
+            Provide company and contact details to create a new assessment profile.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5">

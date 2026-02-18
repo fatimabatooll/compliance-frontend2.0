@@ -1,12 +1,103 @@
 "use client"
 
-import { use, useState, useEffect } from "react"
+import { use, useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Check, ChevronLeft } from "lucide-react"
-import { dimensions, getCompanyById } from "@/lib/mock-data"
+import { useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { ScoreCards } from "@/components/score-cards"
+import { ChevronRight, ChevronLeft } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+import companyService from "@/services/companyService"
+import questionnaireService, {
+  type Domain,
+  type DomainScore,
+} from "@/services/questionnaireService"
+
+type ReviewQuestion = {
+  id: string
+  text: string
+  type: string
+  answer: string | boolean | string[] | null | undefined
+}
+
+type ReviewDimension = {
+  id: string
+  name: string
+  domain: string
+  domainScore: number
+  domainMaturity: string
+  dimensionScore: number
+  dimensionMaturity: string
+  questions: ReviewQuestion[]
+}
+
+const formatMaturity = (value?: string | number | null) => {
+  if (value === undefined || value === null) return "N/A"
+  if (typeof value === "number") {
+    const maturityByLevel: Record<number, string> = {
+      0: "UNINITIATED",
+      1: "LEARNER",
+      2: "EXPLORER",
+      3: "TRANSFORMATIVE",
+      4: "PROFESSIONAL",
+    }
+    return maturityByLevel[value] || String(value)
+  }
+  return String(value).replace(/_/g, " ").toUpperCase()
+}
+
+const parseAnswer = (answer: ReviewQuestion["answer"]) => {
+  if (answer === undefined || answer === null || answer === "") return null
+  if (Array.isArray(answer)) return answer.filter(Boolean).map(String)
+  if (typeof answer === "boolean") return answer ? "Yes" : "No"
+  if (typeof answer === "string" && answer.includes("$")) {
+    return answer
+      .split("$")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+  return String(answer)
+}
+
+const normalizeDimensions = (domains: Domain[], scores: DomainScore[]) => {
+  const scoreByDomainId = new Map(scores.map((item) => [item.domainId, item]))
+
+  return domains.flatMap((domain) => {
+    const domainScore = scoreByDomainId.get(domain.id)
+
+    return domain.dimensions.map((dimension) => {
+      const dimScoreData = domainScore?.dimensionScores?.find(
+        (item) => item.dimensionId === dimension.id
+      )
+      const responseQuestions =
+        dimScoreData?.responses?.map((item, index) => ({
+          id: item.question?.id || `${dimension.id}-${index}`,
+          text: item.question?.question || item.question?.text || "Question",
+          type: item.question?.type || "text",
+          answer: item.response,
+        })) || []
+
+      const fallbackQuestions =
+        dimension.questions?.map((question) => ({
+          id: question.id,
+          text: question.question || question.text || "Question",
+          type: question.type || "text",
+          answer: null,
+        })) || []
+
+      return {
+        id: dimension.id,
+        name: dimension.title,
+        domain: domain.title,
+        domainScore: domainScore?.domainScore ?? 0,
+        domainMaturity: formatMaturity(domainScore?.maturityLevel),
+        dimensionScore: dimScoreData?.dimensionScore ?? 0,
+        dimensionMaturity: formatMaturity(dimScoreData?.maturityLevel),
+        questions: responseQuestions.length ? responseQuestions : fallbackQuestions,
+      } as ReviewDimension
+    })
+  })
+}
 
 export default function ReviewAnswersPage({
   params,
@@ -14,329 +105,270 @@ export default function ReviewAnswersPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
+  const searchParams = useSearchParams()
+  const readinessIndexType = searchParams.get("index") || "genai"
+  const { token } = useAuth()
+
+  const [companyName, setCompanyName] = useState("Company")
+  const [dimensions, setDimensions] = useState<ReviewDimension[]>([])
   const [currentDimIndex, setCurrentDimIndex] = useState(0)
-  const [mounted, setMounted] = useState(false)
-  const [answers] = useState<Record<string, any>>({
-    "q1-1": {
-      type: "text",
-      value: "We have some AI initiatives in place",
-      answer: "We have some AI initiatives in place",
-    },
-    "q1-2": {
-      type: "mcq",
-      value: "option2",
-      answer: "Partially implemented",
-    },
-    "q1-3": {
-      type: "binary",
-      value: "yes",
-      answer: "Yes",
-    },
-    "q1-4": {
-      type: "text",
-      value: "Data governance is in place",
-      answer: "Data governance is in place",
-    },
-    "q1-5": {
-      type: "multiselect",
-      value: ["option1", "option3"],
-      answer: ["Policy framework", "Training programs"],
-    },
-    "q2-1": {
-      type: "text",
-      value: "Our infrastructure is modern",
-      answer: "Our infrastructure is modern",
-    },
-    "q2-2": {
-      type: "mcq",
-      value: "option3",
-      answer: "Fully implemented",
-    },
-    "q2-3": {
-      type: "binary",
-      value: "yes",
-      answer: "Yes",
-    },
-    "q2-4": {
-      type: "text",
-      value: "Cloud-based architecture deployed",
-      answer: "Cloud-based architecture deployed",
-    },
-    "q2-5": {
-      type: "multiselect",
-      value: ["option2", "option3"],
-      answer: ["API framework", "Microservices"],
-    },
-  })
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    if (!token) return
 
-  const company = getCompanyById(id)
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        setErrorMessage("")
+
+        const [company, domains, scores] = await Promise.all([
+          companyService.getCompanyById(id, token, readinessIndexType),
+          questionnaireService.getDomains(readinessIndexType, token),
+          questionnaireService.viewResponses(id, readinessIndexType, token),
+        ])
+
+        if (company?.name) setCompanyName(company.name)
+
+        const normalized = normalizeDimensions(domains, scores)
+        setDimensions(normalized)
+        setCurrentDimIndex(0)
+      } catch (error: unknown) {
+        const message =
+          typeof error === "object" && error && "message" in error
+            ? String((error as { message: string }).message)
+            : "Failed to load review details."
+        setErrorMessage(message)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [id, token, readinessIndexType])
+
   const currentDimension = dimensions[currentDimIndex]
-  const domainIndex = Math.floor(currentDimIndex / 2)
-  const domainName = `Domain ${domainIndex + 1}`
+  const answeredCount = useMemo(() => {
+    if (!currentDimension) return 0
+    return currentDimension.questions.filter((q) => parseAnswer(q.answer)).length
+  }, [currentDimension])
 
-  const calculateScores = () => {
-    const dimensionQuestions = currentDimension.questions
-    const answeredCount = dimensionQuestions.filter(
-      (q) => answers[q.id]?.value
-    ).length
-    const dimensionScore = Math.round((answeredCount / dimensionQuestions.length) * 100)
-    const domainScore = Math.round(dimensionScore * 0.85 + (Math.random() * 30 - 15))
-
-    return {
-      dimensionScore,
-      domainScore,
-      dimensionMaturity: getMaturityLevel(dimensionScore),
-      domainMaturity: getMaturityLevel(domainScore),
-    }
-  }
-
-  const getMaturityLevel = (score: number) => {
-    if (score < 25) return "Initial"
-    if (score < 50) return "Developing"
-    if (score < 75) return "Established"
-    return "Transformative"
-  }
-
-  const scores = calculateScores()
-
-  const renderAnswer = (question: any) => {
-    const answer = answers[question.id]
-    if (!answer) return <span className="text-muted-foreground">No answer provided</span>
-
-    switch (question.type) {
-      case "text":
-        return (
-          <p className="text-foreground break-words">{answer.answer}</p>
-        )
-      case "binary":
-        return (
-          <span className={cn(
-            "inline-flex px-3 py-1 rounded-full text-sm font-medium",
-            answer.value === "yes"
-              ? "bg-accent/15 text-accent"
-              : "bg-destructive/15 text-destructive"
-          )}>
-            {answer.answer}
-          </span>
-        )
-      case "mcq":
-        return (
-          <div className="px-4 py-2 rounded-lg bg-secondary text-foreground">
-            {answer.answer}
-          </div>
-        )
-      case "multiselect":
-        return (
-          <div className="flex flex-wrap gap-2">
-            {Array.isArray(answer.answer) ? (
-              answer.answer.map((item: string, idx: number) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1 rounded-full text-sm font-medium bg-primary/15 text-primary"
-                >
-                  {item}
-                </span>
-              ))
-            ) : (
-              <span className="text-muted-foreground">No answer provided</span>
-            )}
-          </div>
-        )
-      default:
-        return <span className="text-muted-foreground">N/A</span>
-    }
-  }
-
-  if (!company) {
+  if (isLoading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">Company not found</p>
+      <div className="rounded-2xl border border-border/50 p-8 text-center text-sm text-muted-foreground">
+        Loading review...
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        {errorMessage}
+      </div>
+    )
+  }
+
+  if (!currentDimension) {
+    return (
+      <div className="rounded-2xl border border-border/50 p-8 text-center text-sm text-muted-foreground">
+        No review data available.
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 pt-20 mt-24">
-        <div className="max-w-7xl mx-auto px-4 pb-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">
-                Review Answers - {company.name}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                {currentDimIndex + 1} / {dimensions.length} dimensions reviewed
-              </p>
-            </div>
-            <div className="w-full h-2 bg-secondary rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-500"
-                style={{
-                  width: `${((currentDimIndex + 1) / dimensions.length) * 100}%`,
-                }}
+    <div className="min-h-screen bg-background">
+      <div className="mb-4">
+        <Link
+          href={`/company/${id}`}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Back to details
+        </Link>
+        <h1 className="text-2xl font-bold text-foreground">{companyName}</h1>
+        <p className="text-sm text-muted-foreground">Assessment Review</p>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <div className="glass rounded-2xl p-4 sticky top-32 max-h-[calc(100vh-180px)] overflow-y-auto">
+            <div className="flex items-center justify-center mb-6 pb-4 border-b border-border/50">
+              <Image
+                src="/logo-sidat-hyder.png"
+                alt="SIDAT HYDER"
+                width={120}
+                height={40}
               />
             </div>
+
+            <h3 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wide">
+              Assessment Review
+            </h3>
+
+            <div className="space-y-3">
+              {Array.from(new Set(dimensions.map((d) => d.domain))).map((domain) => {
+                const domainDims = dimensions.filter((d) => d.domain === domain)
+                return (
+                  <div key={domain}>
+                    <p className="text-xs font-medium text-muted-foreground mb-2 px-2">
+                      {domain}
+                    </p>
+                    {domainDims.map((dim) => {
+                      const index = dimensions.findIndex((item) => item.id === dim.id)
+                      const isActive = currentDimIndex === index
+                      const dimAnswered = dim.questions.filter((q) =>
+                        parseAnswer(q.answer)
+                      ).length
+                      const dimComplete = dimAnswered === dim.questions.length
+
+                      return (
+                        <button
+                          key={dim.id}
+                          onClick={() => setCurrentDimIndex(index)}
+                          className={cn(
+                            "w-full text-left px-3 py-3 rounded-lg transition-all text-sm mb-2",
+                            isActive
+                              ? "bg-primary/15 border-l-2 border-l-primary text-primary font-semibold"
+                              : dimComplete
+                                ? "bg-accent/10 border-l-2 border-l-accent text-foreground"
+                                : "border-l-2 border-l-border text-muted-foreground"
+                          )}
+                        >
+                          <p>{dim.name}</p>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="glass rounded-2xl p-6 border-l-4 border-l-primary">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Domain Score
+                  </p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold text-primary">
+                      {currentDimension.domainScore}
+                    </span>
+                    <span className="text-xs text-muted-foreground">/100</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Maturity: {currentDimension.domainMaturity}
+              </p>
+            </div>
+
+            <div className="glass rounded-2xl p-6 border-l-4 border-l-accent">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Dimension Score
+                  </p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-bold text-accent">
+                      {currentDimension.dimensionScore}
+                    </span>
+                    <span className="text-xs text-muted-foreground">/100</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Maturity: {currentDimension.dimensionMaturity}
+              </p>
+            </div>
+          </div>
+
+          <div className="glass rounded-2xl p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                {currentDimension.name}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {currentDimension.domain} • {answeredCount} of{" "}
+                {currentDimension.questions.length} questions answered
+              </p>
+              <div className="mt-4 w-full h-2 bg-secondary rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{
+                    width: `${(answeredCount / Math.max(currentDimension.questions.length, 1)) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {currentDimension.questions.map((question) => {
+                const answer = parseAnswer(question.answer)
+                return (
+                  <div
+                    key={question.id}
+                    className="pb-6 border-b border-border/30 last:border-0"
+                  >
+                    <p className="font-medium text-foreground mb-3">
+                      {question.text}
+                    </p>
+                    <div className="bg-secondary/50 rounded-lg p-4 text-sm text-foreground">
+                      {Array.isArray(answer) ? (
+                        <div className="flex flex-wrap gap-2">
+                          {answer.map((item, index) => (
+                            <span
+                              key={`${question.id}-${index}`}
+                              className="px-3 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary"
+                            >
+                              {item}
+                            </span>
+                          ))}
+                        </div>
+                      ) : answer ? (
+                        <p>{answer}</p>
+                      ) : (
+                        <p className="text-muted-foreground italic">
+                          No answer provided
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 mb-6">
+            <button
+              onClick={() => setCurrentDimIndex(Math.max(0, currentDimIndex - 1))}
+              disabled={currentDimIndex === 0}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
+            <div className="flex-1" />
+            <button
+              onClick={() =>
+                setCurrentDimIndex(
+                  Math.min(dimensions.length - 1, currentDimIndex + 1)
+                )
+              }
+              disabled={currentDimIndex === dimensions.length - 1}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </div>
-
-      {/* Main Content - Two Panel Layout */}
-      <main className="flex-1 px-4 pb-8 pt-48">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
-            {/* Left Panel - Domain & Dimension Navigation */}
-            <div className="lg:col-span-1">
-              <div className="glass rounded-2xl p-4 sticky top-56 max-h-[calc(100vh-300px)] overflow-y-auto">
-                {/* Logo Section */}
-                <div className="flex items-center justify-center mb-6 pb-4 border-b border-border/50">
-                  <Image
-                    src="/logo-sidat-hyder.png"
-                    alt="SIDAT HYDER"
-                    width={120}
-                    height={40}
-                    className="h-10 w-auto"
-                  />
-                </div>
-
-                <h3 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wide">
-                  Review Progress
-                </h3>
-
-                <div className="space-y-3">
-                  {Array.from({ length: 8 }).map((_, domIdx) => {
-                    const dims = [
-                      dimensions[domIdx * 2],
-                      dimensions[domIdx * 2 + 1],
-                    ]
-
-                    return (
-                      <div key={domIdx}>
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase px-2 mb-2">
-                          Domain {domIdx + 1}
-                        </h4>
-                        {dims.map((dim: any) => {
-                          if (!dim) return null
-                          const isActive = currentDimIndex === dim.index
-
-                          return (
-                            <div
-                              key={dim.index}
-                              className={cn(
-                                "w-full text-left px-3 py-3 rounded-lg transition-all text-sm",
-                                isActive
-                                  ? "bg-primary/15 border-l-2 border-primary text-primary font-semibold"
-                                  : "border-l-2 border-border text-muted-foreground bg-secondary/30"
-                              )}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>{dim.name}</span>
-                                <Check className="h-4 w-4 text-accent" />
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Panel - Questions and Answers */}
-            <div className="lg:col-span-2">
-              <div className="glass rounded-2xl p-8 space-y-8">
-                {/* Dimension Header */}
-                <div>
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {domainName}
-                  </p>
-                  <h2 className="text-2xl font-bold text-foreground mb-4">
-                    {currentDimension.name}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {currentDimension.description}
-                  </p>
-                </div>
-
-                {/* Score Cards */}
-                <div>
-                  <ScoreCards
-                    domainScore={scores.domainScore}
-                    domainMaturity={scores.domainMaturity}
-                    dimensionScore={scores.dimensionScore}
-                    dimensionMaturity={scores.dimensionMaturity}
-                  />
-                </div>
-
-                {/* Questions and Answers */}
-                <div className="space-y-6 border-t border-border/50 pt-6">
-                  {currentDimension.questions.map(
-                    (question: any, qIndex: number) => (
-                      <div
-                        key={question.id}
-                        className="pb-6 border-b border-border/30 last:border-b-0"
-                      >
-                        <div className="flex items-start gap-3 mb-4">
-                          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/15 flex-shrink-0 text-sm font-bold text-primary">
-                            {qIndex + 1}
-                          </div>
-                          <div className="flex-1">
-                            <p className="text-foreground font-medium">
-                              {question.question}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {question.type.charAt(0).toUpperCase() +
-                                question.type.slice(1)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="ml-11">
-                          {renderAnswer(question)}
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-
-                {/* Navigation */}
-                <div className="flex items-center gap-3 pt-6 border-t border-border/50">
-                  <Link
-                    href={`/company/${id}`}
-                    className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Back to Details
-                  </Link>
-                  <div className="flex-1" />
-                  {currentDimIndex > 0 && (
-                    <button
-                      onClick={() => setCurrentDimIndex(currentDimIndex - 1)}
-                      className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                      Previous
-                    </button>
-                  )}
-                  {currentDimIndex < dimensions.length - 1 && (
-                    <button
-                      onClick={() => setCurrentDimIndex(currentDimIndex + 1)}
-                      className="flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-all bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      Next
-                      <ChevronLeft className="h-4 w-4 rotate-180" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
     </div>
   )
 }

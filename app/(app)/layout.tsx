@@ -38,7 +38,6 @@ function AppHeader() {
             alt="SIDAT HYDER"
             width={100}
             height={30}
-            className="h-8 w-auto"
           />
         </div>
 

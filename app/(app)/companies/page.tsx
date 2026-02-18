@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
   Building2,
@@ -9,27 +9,35 @@ import {
   Search,
   Plus,
 } from "lucide-react"
-import { companies, getStatusColor, getMaturityColor } from "@/lib/mock-data"
+import companyService, {
+  type ConsultantCompany,
+  type CreateCompanyInput,
+} from "@/services/companyService"
+import { getStatusColor, getMaturityColor } from "@/lib/ui-helpers"
 import { cn } from "@/lib/utils"
 import { AddCompanyModal } from "@/components/add-company-modal"
+import { useAuth } from "@/hooks/useAuth"
 
 const statusFilters = ["All", "Evaluated", "In Progress", "Pending"]
 
-function HeroStrip() {
+function HeroStrip({ companies }: { companies: ConsultantCompany[] }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
   }, [])
 
   const totalCompanies = companies.length
-  const evaluatedCount = companies.filter(
-    (c) => c.status === "evaluated"
-  ).length
-  const evaluatedPct = Math.round((evaluatedCount / totalCompanies) * 100)
-  const avgScore = Math.round(
-    companies.filter((c) => c.readinessScore > 0).reduce((a, b) => a + b.readinessScore, 0) /
-      companies.filter((c) => c.readinessScore > 0).length
-  )
+  const evaluatedCount = companies.filter((c) => c.status === "evaluated").length
+  const evaluatedPct = totalCompanies
+    ? Math.round((evaluatedCount / totalCompanies) * 100)
+    : 0
+  const scoredCompanies = companies.filter((c) => c.readinessScore > 0)
+  const avgScore = scoredCompanies.length
+    ? Math.round(
+        scoredCompanies.reduce((sum, item) => sum + item.readinessScore, 0) /
+          scoredCompanies.length
+      )
+    : 0
 
   const stats = [
     {
@@ -101,13 +109,15 @@ function CompanyCard({
   company,
   index,
 }: {
-  company: (typeof companies)[0]
+  company: ConsultantCompany
   index: number
 }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const progress = company.evaluationProgress ?? 0
 
   const renderActions = () => {
     if (company.status === "evaluated") {
@@ -134,13 +144,13 @@ function CompanyCard({
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium text-muted-foreground">
-              Progress: {company.evaluationProgress}%
+              Progress: {progress}%
             </p>
           </div>
           <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
             <div
               className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${company.evaluationProgress}%` }}
+              style={{ width: `${progress}%` }}
             />
           </div>
           <div className="flex gap-2 mt-3">
@@ -161,7 +171,6 @@ function CompanyCard({
       )
     }
 
-    // pending status
     return (
       <div className="flex gap-2">
         <Link
@@ -188,7 +197,6 @@ function CompanyCard({
       )}
       style={{ transitionDelay: `${index * 80}ms` }}
     >
-      {/* Gradient edge on hover */}
       <div className="absolute inset-0 rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-500 pointer-events-none border border-primary/20" />
 
       <div className="flex items-start justify-between mb-4">
@@ -238,7 +246,7 @@ function CompanyCard({
 
       <div className="mt-auto pt-4 border-t border-border/50">
         <p className="text-[11px] text-muted-foreground mb-3">
-          {company.consultant} • {company.size} employees
+          {company.size ? `${company.size} employees` : "Company assessment"}
         </p>
         {renderActions()}
       </div>
@@ -247,44 +255,81 @@ function CompanyCard({
 }
 
 export default function CompaniesPage() {
+  const { token, user } = useAuth()
   const [activeFilter, setActiveFilter] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [companiesList, setCompaniesList] = useState(companies)
+  const [companiesList, setCompaniesList] = useState<ConsultantCompany[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState("")
 
-  const filteredCompanies = companiesList.filter((company) => {
-    const matchesFilter =
-      activeFilter === "All" ||
-      company.status === activeFilter.toLowerCase().replace(" ", "-")
-    const matchesSearch =
-      company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      company.industry.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesFilter && matchesSearch
-  })
+  const fetchCompanies = useCallback(async () => {
+    if (!token || !user?.id) return
 
-  const handleAddCompany = (newCompany: any) => {
-    const company = {
-      id: companiesList.length + 1,
-      name: newCompany.name,
-      industry: newCompany.industry,
-      logo: newCompany.name.charAt(0),
-      readinessScore: 0,
-      status: "pending" as const,
-      evaluationProgress: 0,
-      consultant: newCompany.contactPerson,
-      size: "TBD",
-      ...newCompany,
+    try {
+      setIsLoading(true)
+      setErrorMessage("")
+      const response = await companyService.getCompaniesByConsultantId(
+        user.id,
+        token,
+        "genai"
+      )
+      setCompaniesList(response.companies)
+    } catch (error: unknown) {
+      const message =
+        typeof error === "object" && error && "message" in error
+          ? String((error as { message: string }).message)
+          : "Failed to load companies."
+      setErrorMessage(message)
+    } finally {
+      setIsLoading(false)
     }
-    setCompaniesList([...companiesList, company])
+  }, [token, user?.id])
+
+  useEffect(() => {
+    fetchCompanies()
+  }, [fetchCompanies])
+
+  const filteredCompanies = useMemo(
+    () =>
+      companiesList.filter((company) => {
+        const matchesFilter =
+          activeFilter === "All" ||
+          company.status === activeFilter.toLowerCase().replace(" ", "-")
+        const matchesSearch =
+          company.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          company.industry.toLowerCase().includes(searchQuery.toLowerCase())
+        return matchesFilter && matchesSearch
+      }),
+    [companiesList, activeFilter, searchQuery]
+  )
+
+  const handleAddCompany = async (
+    newCompany: Omit<CreateCompanyInput, "consultantId">
+  ) => {
+    if (!token || !user?.id) return
+
+    await companyService.createCompany(
+      {
+        ...newCompany,
+        consultantId: user.id,
+      },
+      token
+    )
+    await fetchCompanies()
   }
 
   return (
     <div>
-      <HeroStrip />
+      <HeroStrip companies={companiesList} />
 
-      {/* Filters */}
+      {errorMessage && (
+        <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive mb-4">
+          {errorMessage}
+        </p>
+      )}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-        {/* Search */}
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
@@ -296,7 +341,6 @@ export default function CompaniesPage() {
           />
         </div>
 
-        {/* Filter chips and Add button */}
         <div className="flex items-center gap-2">
           {statusFilters.map((filter) => (
             <button
@@ -322,14 +366,19 @@ export default function CompaniesPage() {
         </div>
       </div>
 
-      {/* Company Grid - Staggered */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCompanies.map((company, i) => (
-          <CompanyCard key={company.id} company={company} index={i} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="rounded-2xl border border-border/50 p-8 text-center text-sm text-muted-foreground">
+          Loading companies...
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredCompanies.map((company, i) => (
+            <CompanyCard key={company.id} company={company} index={i} />
+          ))}
+        </div>
+      )}
 
-      {filteredCompanies.length === 0 && (
+      {!isLoading && filteredCompanies.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20">
           <div className="h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
             <Building2 className="h-8 w-8 text-muted-foreground" />

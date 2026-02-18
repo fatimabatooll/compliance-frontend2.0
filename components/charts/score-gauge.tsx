@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { getMaturityLabel } from "@/lib/mock-data"
+import { getMaturityLabel } from "@/lib/ui-helpers"
 
 export function ScoreGauge({ score }: { score: number }) {
   const [animatedScore, setAnimatedScore] = useState(0)

@@ -1,100 +1,37 @@
 "use client"
 
-import React from "react"
-
-import { use, useState, useEffect } from "react"
+import { use, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import {
-  ArrowLeft,
-  ClipboardCheck,
-  TrendingUp,
-  Target,
-  Layers,
-} from "lucide-react"
-import {
-  getCompanyById,
-  domainScores,
-  trendData,
-  radarData,
-  strengthsAndGaps,
-  getMaturityColor,
-  companies,
-} from "@/lib/mock-data"
+import { useSearchParams } from "next/navigation"
+import { ArrowLeft, ClipboardCheck } from "lucide-react"
+import { getMaturityColor, getMaturityLabel } from "@/lib/ui-helpers"
 import { cn } from "@/lib/utils"
-import { ScoreGauge } from "@/components/charts/score-gauge"
+import companyService, { type CompanyDetails } from "@/services/companyService"
+import questionnaireService from "@/services/questionnaireService"
+import { useAuth } from "@/hooks/useAuth"
 import {
   BarChart,
   Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
   Radar,
-  AreaChart,
-  Area,
-  CartesianGrid,
-  Cell,
 } from "recharts"
 
-function ChartCard({
-  title,
-  icon: Icon,
-  children,
-  className,
-}: {
-  title: string
-  icon: React.ElementType
-  children: React.ReactNode
-  className?: string
-}) {
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const timer = setTimeout(() => setVisible(true), 200)
-    return () => clearTimeout(timer)
-  }, [])
-
-  return (
-    <div
-      className={cn(
-        "glass rounded-2xl p-6 transition-all duration-700",
-        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4",
-        className
-      )}
-    >
-      <div className="flex items-center gap-2.5 mb-5">
-        <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Icon className="h-4 w-4 text-primary" />
-        </div>
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      </div>
-      {children}
-    </div>
-  )
+type DomainChartRow = {
+  domain: string
+  score: number
+  max: number
 }
 
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: Array<{ value: number; name: string }>
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="glass-strong rounded-xl px-4 py-3 shadow-xl">
-      <p className="text-xs font-semibold text-foreground mb-1">{label}</p>
-      {payload.map((entry, i) => (
-        <p key={i} className="text-xs text-muted-foreground">
-          {entry.name}: <span className="font-medium text-foreground">{entry.value}</span>
-        </p>
-      ))}
-    </div>
-  )
+type DimensionChartRow = {
+  name: string
+  value: number
 }
 
 export default function CompanyDetailsPage({
@@ -103,21 +40,117 @@ export default function CompanyDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
-  const company = getCompanyById(id) || companies[0]
-  const [mounted, setMounted] = useState(false)
+  const searchParams = useSearchParams()
+  const readinessIndexType = searchParams.get("index") || "genai"
+  const { token } = useAuth()
+
+  const [company, setCompany] = useState<CompanyDetails | null>(null)
+  const [domainScores, setDomainScores] = useState<DomainChartRow[]>([])
+  const [dimensionScores, setDimensionScores] = useState<DimensionChartRow[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    if (!token) return
+
+    const fetchData = async () => {
+      try {
+        setIsLoading(true)
+        setErrorMessage("")
+
+        const companyData = await companyService.getCompanyById(
+          id,
+          token,
+          readinessIndexType
+        )
+        setCompany(companyData)
+
+        if (!companyData || companyData.status !== "evaluated") {
+          setDomainScores([])
+          setDimensionScores([])
+          return
+        }
+
+        try {
+          const [domains, scores] = await Promise.all([
+            questionnaireService.getDomains(readinessIndexType, token),
+            questionnaireService.viewResponses(id, readinessIndexType, token),
+          ])
+
+          const domainScoreMap = new Map(
+            scores.map((item) => [item.domainId, item.domainScore])
+          )
+          const dimensionScoreMap = new Map(
+            scores.flatMap((item) =>
+              item.dimensionScores.map((dimension) => [
+                dimension.dimensionId,
+                dimension.dimensionScore,
+              ])
+            )
+          )
+
+          setDomainScores(
+            domains.map((domain) => ({
+              domain: domain.title,
+              score: domainScoreMap.get(domain.id) ?? 0,
+              max: 100,
+            }))
+          )
+
+          setDimensionScores(
+            domains
+              .flatMap((domain) =>
+                domain.dimensions.map((dimension) => ({
+                  name: dimension.title,
+                  value: dimensionScoreMap.get(dimension.id) ?? 0,
+                }))
+              )
+              .slice(0, 10)
+          )
+        } catch {
+          setDomainScores([])
+          setDimensionScores([])
+        }
+      } catch (error: unknown) {
+        const message =
+          typeof error === "object" && error && "message" in error
+            ? String((error as { message: string }).message)
+            : "Failed to load company details."
+        setErrorMessage(message)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [id, token, readinessIndexType])
+
+  const maturityLabel = useMemo(() => {
+    if (!company) return "-"
+    return getMaturityLabel(company.readinessScore)
+  }, [company])
+
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl border border-border/50 p-8 text-center text-sm text-muted-foreground">
+        Loading company details...
+      </div>
+    )
+  }
+
+  if (errorMessage) {
+    return (
+      <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+        {errorMessage}
+      </div>
+    )
+  }
+
+  if (!company) return <div>Company not found</div>
 
   return (
-    <div>
-      {/* Header */}
-      <div
-        className={`mb-8 transition-all duration-500 ${
-          mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-        }`}
-      >
+    <div className="space-y-6">
+      <div>
         <Link
           href="/companies"
           className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4"
@@ -125,280 +158,166 @@ export default function CompanyDetailsPage({
           <ArrowLeft className="h-3.5 w-3.5" />
           Back to companies
         </Link>
-
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-secondary flex items-center justify-center text-lg font-bold text-foreground">
-              {company.logo}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                {company.name}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                {company.industry} &middot; {company.size} employees
-              </p>
-            </div>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-1">
+              {company.name}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {company.industry}
+              {company.size ? ` • ${company.size}` : ""}
+            </p>
           </div>
-          <Link
-            href={`/company/${company.id}/questionnaire/genai`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <ClipboardCheck className="h-4 w-4" />
-            Start Assessment
-          </Link>
+
+          {(company.status === "pending" || company.status === "in-progress") && (
+            <Link
+              href={`/company/${company.id}/questionnaire/genai`}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <ClipboardCheck className="h-4 w-4" />
+              {company.status === "pending" ? "Start Assessment" : "Continue Assessment"}
+            </Link>
+          )}
         </div>
       </div>
 
-      {/* Score Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-        <ChartCard
-          title="Overall Readiness Score"
-          icon={Target}
-          className="lg:row-span-2"
-        >
-          <div className="flex flex-col items-center justify-center h-full py-4">
-            <ScoreGauge score={company.readinessScore || 78} />
-            <div className="mt-6 grid grid-cols-2 gap-4 w-full">
-              <div className="text-center p-3 rounded-xl bg-secondary/50">
-                <p className="text-lg font-bold text-foreground">6</p>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Domains
-                </p>
-              </div>
-              <div className="text-center p-3 rounded-xl bg-secondary/50">
-                <p className="text-lg font-bold text-foreground">15</p>
-                <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Questions
-                </p>
-              </div>
-            </div>
-          </div>
-        </ChartCard>
-
-        {/* Domain Maturity Bar Chart */}
-        <ChartCard
-          title="Domain Maturity"
-          icon={Layers}
-          className="lg:col-span-2"
-        >
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart
-              data={domainScores}
-              layout="vertical"
-              margin={{ left: 0, right: 16, top: 0, bottom: 0 }}
-            >
-              <XAxis type="number" domain={[0, 100]} hide />
-              <YAxis
-                type="category"
-                dataKey="domain"
-                width={110}
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar
-                dataKey="score"
-                name="Score"
-                radius={[0, 6, 6, 0]}
-                barSize={16}
+      <div className="glass rounded-2xl p-6 border-l-4 border-l-primary">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-2">
+              Overall Readiness Score
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span
+                className={cn(
+                  "text-4xl font-bold",
+                  getMaturityColor(company.readinessScore)
+                )}
               >
-                {domainScores.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={
-                      entry.score >= 70
-                        ? "hsl(var(--accent))"
-                        : entry.score >= 50
-                          ? "hsl(var(--primary))"
-                          : "hsl(var(--chart-3))"
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Radar Chart */}
-        <ChartCard
-          title="Dimension Radar"
-          icon={Target}
-          className="lg:col-span-2"
-        >
-          <ResponsiveContainer width="100%" height={250}>
-            <RadarChart data={radarData} cx="50%" cy="50%">
-              <PolarGrid
-                stroke="hsl(var(--border))"
-                strokeDasharray="3 3"
-              />
-              <PolarAngleAxis
-                dataKey="dimension"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-              />
-              <Radar
-                name="Score"
-                dataKey="value"
-                stroke="hsl(var(--primary))"
-                fill="hsl(var(--primary))"
-                fillOpacity={0.15}
-                strokeWidth={2}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Trend Line */}
-        <ChartCard title="Readiness Trend" icon={TrendingUp}>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={trendData}>
-              <defs>
-                <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="0%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0.3}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="hsl(var(--primary))"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="score"
-                name="Score"
-                stroke="hsl(var(--primary))"
-                fill="url(#areaGrad)"
-                strokeWidth={2.5}
-                dot={{
-                  fill: "hsl(var(--primary))",
-                  stroke: "hsl(var(--card))",
-                  strokeWidth: 2,
-                  r: 4,
-                }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Strengths vs Gaps */}
-        <ChartCard title="Strengths vs Gaps" icon={Layers}>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart
-              data={strengthsAndGaps}
-              layout="vertical"
-              margin={{ left: 0, right: 16, top: 0, bottom: 0 }}
-            >
-              <XAxis type="number" domain={[0, 100]} hide />
-              <YAxis
-                type="category"
-                dataKey="area"
-                width={100}
-                tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar
-                dataKey="strength"
-                name="Strength"
-                stackId="a"
-                fill="hsl(var(--accent))"
-                radius={[0, 0, 0, 0]}
-                barSize={14}
-              />
-              <Bar
-                dataKey="gap"
-                name="Gap"
-                stackId="a"
-                fill="hsl(var(--secondary))"
-                radius={[0, 4, 4, 0]}
-                barSize={14}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
-
-      {/* Domain Detail Cards */}
-      <div className="mt-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Domain Breakdown
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {domainScores.map((domain, i) => (
-            <div
-              key={domain.domain}
-              className="glass rounded-2xl p-5 hover:glow-sm transition-all duration-300"
-              style={{ animationDelay: `${i * 100}ms` }}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-foreground">
-                  {domain.domain}
-                </h4>
-                <span
-                  className={cn(
-                    "text-xs font-medium px-2 py-0.5 rounded-full",
-                    domain.maturity === "Advanced" &&
-                      "bg-accent/10 text-accent",
-                    domain.maturity === "Intermediate" &&
-                      "bg-primary/10 text-primary",
-                    domain.maturity === "Developing" &&
-                      "bg-chart-3/10 text-chart-3"
-                  )}
-                >
-                  {domain.maturity}
-                </span>
-              </div>
-              <div className="flex items-baseline gap-1.5 mb-3">
-                <span
-                  className={cn(
-                    "text-xl font-bold",
-                    getMaturityColor(domain.score)
-                  )}
-                >
-                  {domain.score}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  / {domain.maxScore}
-                </span>
-              </div>
-              {/* Mini progress bar */}
-              <div className="h-1.5 rounded-full bg-secondary overflow-hidden">
-                <div
-                  className="h-full rounded-full gradient-primary transition-all duration-1000 ease-out"
-                  style={{ width: `${domain.score}%` }}
-                />
-              </div>
+                {company.readinessScore}
+              </span>
+              <span className="text-sm text-muted-foreground">/100</span>
             </div>
-          ))}
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-medium text-muted-foreground mb-1">
+              Maturity Level
+            </p>
+            <p className="text-lg font-semibold text-accent">{maturityLabel}</p>
+          </div>
         </div>
       </div>
+
+      {company.status !== "evaluated" ? (
+        <div className="glass rounded-2xl p-12 flex flex-col items-center justify-center min-h-96">
+          <h2 className="text-xl font-semibold text-foreground mb-2">
+            Assessment Not Completed
+          </h2>
+          <p className="text-sm text-muted-foreground text-center max-w-md">
+            This company has not completed the selected readiness assessment yet.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="glass rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">
+                Domain Scores
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={domainScores}
+                  margin={{ top: 20, right: 30, left: 0, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="domain"
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar
+                    dataKey="score"
+                    fill="var(--primary)"
+                    radius={[8, 8, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="glass rounded-2xl p-6">
+              <h2 className="text-lg font-semibold text-foreground mb-4">
+                Dimensions Assessment
+              </h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <RadarChart data={dimensionScores}>
+                  <PolarGrid stroke="var(--border)" />
+                  <PolarAngleAxis
+                    dataKey="name"
+                    tick={{ fontSize: 10 }}
+                    fill="var(--foreground)"
+                  />
+                  <Radar
+                    name="Score"
+                    dataKey="value"
+                    stroke="var(--primary)"
+                    fill="var(--primary)"
+                    fillOpacity={0.6}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "var(--card)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="glass rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">
+              Detailed Domain Analysis
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {domainScores.map((domain) => (
+                <div
+                  key={domain.domain}
+                  className="rounded-xl border border-border/50 p-4 bg-secondary/20"
+                >
+                  <p className="text-sm font-medium text-foreground mb-2">
+                    {domain.domain}
+                  </p>
+                  <div className="flex items-end gap-2 mb-3">
+                    <span className="text-2xl font-bold text-primary">
+                      {domain.score}
+                    </span>
+                    <span className="text-xs text-muted-foreground mb-1">
+                      /{domain.max}
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-border/50 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${(domain.score / domain.max) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }
