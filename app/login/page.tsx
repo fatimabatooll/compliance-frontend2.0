@@ -5,7 +5,9 @@ import React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, ArrowRight, Sparkles } from "lucide-react"
-import type { Role } from "@/lib/mock-data"
+import { useAuth } from "@/hooks/useAuth"
+
+type Role = "admin" | "consultant"
 
 function MeshBackground() {
   return (
@@ -49,20 +51,31 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const { login, isAuthenticated, isInitializing, user } = useAuth()
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
+  useEffect(() => {
+    if (isInitializing || !isAuthenticated || !user) return
+    router.replace(user.role === "admin" ? "/admin/consultants" : "/companies")
+  }, [isInitializing, isAuthenticated, user, router])
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage("")
     setIsLoading(true)
-    // Mock login delay
-    await new Promise((resolve) => setTimeout(resolve, 800))
-    if (role === "admin") {
-      router.push("/admin/consultants")
-    } else {
-      router.push("/companies")
+    try {
+      await login({ email, password, role })
+      router.replace(role === "admin" ? "/admin/consultants" : "/companies")
+    } catch (error: any) {
+      setErrorMessage(
+        error?.message || error?.error || "Incorrect email or password."
+      )
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -207,6 +220,11 @@ export default function LoginPage() {
               )}
               <div className="absolute inset-0 bg-foreground/5 opacity-0 hover:opacity-100 transition-opacity duration-300" />
             </button>
+            {errorMessage && (
+              <p className="text-xs text-destructive font-medium text-center">
+                {errorMessage}
+              </p>
+            )}
           </form>
 
           <p className="mt-8 text-center text-xs text-muted-foreground">
