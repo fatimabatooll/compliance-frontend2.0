@@ -1,4 +1,4 @@
-export type HttpMethod = "GET" | "POST" | "PATCH" | "DELETE"
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
 
 type RequestOptions = {
   method?: HttpMethod
@@ -45,7 +45,9 @@ export default class APIService {
       .catch(() => ({ message: "Unexpected response from server." }))
 
     if (!response.ok) {
-      throw data
+      const errorPayload =
+        typeof data === "object" && data !== null ? data : { message: String(data) }
+      throw { ...errorPayload, status: response.status }
     }
 
     return data as T
@@ -61,6 +63,10 @@ export default class APIService {
 
   patch<T = unknown>(path: string, body?: unknown, token?: string | null) {
     return this.request<T>(path, { method: "PATCH", body, token })
+  }
+
+  put<T = unknown>(path: string, body?: unknown, token?: string | null) {
+    return this.request<T>(path, { method: "PUT", body, token })
   }
 
   delete<T = unknown>(path: string, token?: string | null) {
