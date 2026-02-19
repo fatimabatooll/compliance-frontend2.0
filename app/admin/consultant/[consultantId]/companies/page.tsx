@@ -77,7 +77,7 @@ export default function ConsultantCompaniesPage({
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <p className="text-sm text-muted-foreground mb-2">
+        <p className="text-sm text-muted-foreground my-2">
           Consultant:{" "}
           <span className="font-semibold text-foreground">{consultantName}</span>
         </p>

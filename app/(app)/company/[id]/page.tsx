@@ -144,14 +144,14 @@ export default function CompanyDetailsPage({
       <div>
         <Link
           href='/companies'
-          className='inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-4'
+          className='inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors my-2'
         >
           <ArrowLeft className='h-3.5 w-3.5' />
           Back to companies
         </Link>
         <div className='flex items-start justify-between gap-4'>
           <div>
-            <h1 className='text-3xl font-bold text-foreground mb-1 capitalize'>
+            <h1 className='text-3xl font-bold text-foreground mb-2 capitalize'>
               {company.name}
             </h1>
 
