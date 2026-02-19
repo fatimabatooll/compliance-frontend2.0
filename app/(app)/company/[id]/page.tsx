@@ -9,20 +9,6 @@ import { cn } from "@/lib/utils";
 import companyService, { type CompanyDetails } from "@/services/companyService";
 import questionnaireService from "@/services/questionnaireService";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
-} from "recharts";
-import DomainMaturityChart from "@/components/charts/DomainMaturityChart";
 import DimensionMaturityRadar from "@/components/charts/DimensionMaturityRadar";
 import CircularProgress from "@/components/charts/CircularProgress";
 
@@ -89,7 +75,7 @@ export default function CompanyDetailsPage({
             scores.flatMap((item) =>
               item.dimensionScores.map((dimension) => [
                 dimension.dimensionId,
-                dimension.dimensionScore,
+                dimension.maturityLevel,
               ]),
             ),
           );
@@ -107,10 +93,10 @@ export default function CompanyDetailsPage({
               .flatMap((domain) =>
                 domain.dimensions.map((dimension) => ({
                   name: dimension.title,
-                  value: dimensionScoreMap.get(dimension.id) ?? 0,
+                  value: Number(dimensionScoreMap.get(dimension.id) ?? 0),
                 })),
               )
-              .slice(0, 10),
+              .slice(0, 12),
           );
         } catch {
           setDomainScores([]);
