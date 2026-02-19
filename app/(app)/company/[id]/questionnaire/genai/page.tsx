@@ -133,7 +133,17 @@ export default function QuestionnairePage({
         const value = source[question.id]
         const type = getQuestionType(question)
 
-        if (type === "checkbox" || type === "list") {
+        if (type === "checkbox") {
+          const singleValue = Array.isArray(value)
+            ? value[0] || ""
+            : typeof value === "string"
+              ? value.trim()
+              : ""
+          acc[question.id] = singleValue
+          return acc
+        }
+
+        if (type === "list") {
           const listValue = Array.isArray(value)
             ? value
             : typeof value === "string" && value.trim()
@@ -188,7 +198,23 @@ export default function QuestionnairePage({
           const value = item.response
           const questionType = item.question?.type || "text"
 
-          if (questionType === "checkbox" || questionType === "list") {
+          if (questionType === "checkbox") {
+            if (Array.isArray(value)) {
+              const first = value.map((entry) => String(entry).trim()).find(Boolean)
+              responses[questionId] = first ? [first] : []
+              return
+            }
+            if (typeof value === "string") {
+              const first = value
+                .split("$")
+                .map((entry) => entry.trim())
+                .find(Boolean)
+              responses[questionId] = first ? [first] : []
+              return
+            }
+          }
+
+          if (questionType === "list") {
             if (Array.isArray(value)) {
               responses[questionId] = value.map((entry) => String(entry).trim())
               return
@@ -733,15 +759,17 @@ function QuestionCard({ question, index, answer, onAnswer }: QuestionCardProps) 
       {type === "checkbox" && (
         <div className="space-y-3">
           {options.map((option, idx) => {
-            const selectedValues = Array.isArray(answer) ? answer : []
-            const selected = selectedValues.includes(option)
+            const selectedOption = Array.isArray(answer)
+              ? answer[0]
+              : typeof answer === "string"
+                ? answer
+                : ""
+            const selected = selectedOption === option
             return (
               <button
                 key={`${question.id}-${idx}`}
                 onClick={() => {
-                  const updated = selected
-                    ? selectedValues.filter((item) => item !== option)
-                    : [...selectedValues, option]
+                  const updated = selected ? [] : [option]
                   onAnswer(question.id || "", updated)
                 }}
                 className={cn(

@@ -37,10 +37,12 @@ const industryOptions = [
 ]
 
 const strengthOptions = [
-  "Initial",
-  "Developing",
-  "Established",
-  "Transformative",
+  "1-10",
+  "10-50",
+  "50-100",
+  "100-200",
+  "200-500",
+  "500 & more",
 ]
 
 export function AddCompanyModal({

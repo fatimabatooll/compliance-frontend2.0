@@ -1,11 +1,11 @@
 import type { CompanyStatus } from "@/services/companyService";
 
 export function getMaturityLabel(score: number): string {
-  if (score >= 100) return "Professional";
-  if (score >= 75) return "Transformative";
-  if (score >= 50) return "Explorer";
-  if (score >= 25) return "Learner";
-  return "Initial";
+  if (score <= 0) return "Not Started";
+  if (score <= 25) return "Learner";
+  if (score <= 50) return "Explorer";
+  if (score <= 75) return "Transformative";
+  return "Professional";
 }
 
 export function getMaturityColor(score: number): string {

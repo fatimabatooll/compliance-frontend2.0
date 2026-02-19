@@ -24,6 +24,7 @@ import {
 } from "recharts";
 import DomainMaturityChart from "@/components/charts/DomainMaturityChart";
 import DimensionMaturityRadar from "@/components/charts/DimensionMaturityRadar";
+import CircularProgress from "@/components/charts/CircularProgress";
 
 type DomainChartRow = {
   domain: string;
@@ -151,7 +152,7 @@ export default function CompanyDetailsPage({
   }
 
   if (!company) return <div>Company not found</div>;
-   console.log(company)
+  console.log(company);
   return (
     <div className='space-y-6'>
       <div>
@@ -164,13 +165,12 @@ export default function CompanyDetailsPage({
         </Link>
         <div className='flex items-start justify-between gap-4'>
           <div>
-            <h1 className='text-3xl font-bold text-foreground mb-1'>
+            <h1 className='text-3xl font-bold text-foreground mb-1 capitalize'>
               {company.name}
             </h1>
 
             <p className='text-sm text-muted-foreground'>
-              {company.industry}
-              {company.size ? ` • ${company.size}` : ""}
+              {company.industry} • {company.strength}
             </p>
 
             {/* ✅ ADD THIS */}
@@ -216,9 +216,7 @@ export default function CompanyDetailsPage({
             <p className='text-xs font-medium text-muted-foreground mb-1'>
               Maturity Level
             </p>
-            <p className='text-lg font-semibold text-accent'>
-              {company.strength}
-            </p>
+            <p className='text-lg font-semibold text-accent'>{maturityLabel}</p>
           </div>
         </div>
       </div>
@@ -241,7 +239,15 @@ export default function CompanyDetailsPage({
                 Domain Maturity Overview
               </h2>
 
-              <DomainMaturityChart data={domainScores} />
+              <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8'>
+                {domainScores.map((domain) => (
+                  <CircularProgress
+                    key={domain.domain}
+                    value={domain.score}
+                    label={domain.domain}
+                  />
+                ))}
+              </div>
             </div>
 
             <div className='glass rounded-2xl p-6'>
@@ -250,38 +256,6 @@ export default function CompanyDetailsPage({
               </h2>
 
               <DimensionMaturityRadar data={dimensionScores} />
-            </div>
-          </div>
-
-          <div className='glass rounded-2xl p-6'>
-            <h2 className='text-lg font-semibold text-foreground mb-4'>
-              Detailed Domain Analysis
-            </h2>
-            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
-              {domainScores.map((domain) => (
-                <div
-                  key={domain.domain}
-                  className='rounded-xl border border-border/50 p-4 bg-secondary/20'
-                >
-                  <p className='text-sm font-medium text-foreground mb-2'>
-                    {domain.domain}
-                  </p>
-                  <div className='flex items-end gap-2 mb-3'>
-                    <span className='text-2xl font-bold text-primary'>
-                      {domain.score}
-                    </span>
-                    <span className='text-xs text-muted-foreground mb-1'>
-                      /{domain.max}
-                    </span>
-                  </div>
-                  <div className='w-full h-2 bg-border/50 rounded-full overflow-hidden'>
-                    <div
-                      className='h-full bg-primary rounded-full transition-all'
-                      style={{ width: `${(domain.score / domain.max) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
         </>
