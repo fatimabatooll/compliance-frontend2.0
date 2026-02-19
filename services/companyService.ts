@@ -23,7 +23,9 @@ export type CompanyDetails = {
   readinessScore: number
   companyImage?: string
   strength?: string
-  size?: string
+  size?: string,
+  personName?:string,
+  designation? : string,
 }
 
 export type CreateCompanyInput = {
@@ -54,6 +56,8 @@ type ApiEvaluationDetails = {
 }
 
 type ApiCompanyPayload = {
+  personName: string | undefined
+  designation: string | undefined
   id?: string
   _id?: string
   name?: string
@@ -218,6 +222,8 @@ const toCompanyDetails = (
     readinessScore: deriveScore(raw, readinessIndexType),
     companyImage: raw.companyImage,
     strength: raw.strength,
+    personName: raw.personName,
+    designation: raw.designation,
     size: raw.size || raw.companySize,
   }
 }

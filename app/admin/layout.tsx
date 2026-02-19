@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 function AdminHeader() {
-  const { theme, setTheme } = useTheme()
+  const { theme, resolvedTheme, setTheme } = useTheme()
   const router = useRouter()
   const { user, logout } = useAuth()
 
@@ -34,8 +34,8 @@ function AdminHeader() {
         {/* Left - Logo */}
         <div className="flex items-center gap-3">
           <Image
-            src="/logo-sidat-hyder.png"
-            alt="SIDAT HYDER"
+            src={resolvedTheme === "dark" ? "/logoWhite.svg" : "/xloop-logo.png"}
+            alt="xloop logo"
             width={100}
             height={30}
           />

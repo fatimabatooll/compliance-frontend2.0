@@ -1,46 +1,46 @@
-export type Role = "admin" | "consultant"
+export type Role = "admin" | "consultant";
 
-export type QuestionType = "text" | "mcq" | "binary" | "multiselect"
+export type QuestionType = "text" | "mcq" | "binary" | "multiselect";
 
 export interface Company {
-  id: string
-  name: string
-  industry: string
-  size: string
-  status: "evaluated" | "in-progress" | "pending"
-  readinessScore: number
-  lastUpdated: string
-  consultant: string
-  logo: string
-  evaluationProgress?: number // percentage for in-progress
+  id: string;
+  name: string;
+  industry: string;
+  size: string;
+  status: "evaluated" | "in-progress" | "pending";
+  readinessScore: number;
+  lastUpdated: string;
+  consultant: string;
+  logo: string;
+  evaluationProgress?: number; // percentage for in-progress
 }
 
 export interface DomainScore {
-  domain: string
-  score: number
-  maxScore: number
-  maturity: string
+  domain: string;
+  score: number;
+  maxScore: number;
+  maturity: string;
 }
 
 export interface TrendPoint {
-  month: string
-  score: number
+  month: string;
+  score: number;
 }
 
 export interface Question {
-  id: string
-  text: string
-  type: QuestionType
-  options?: string[]
-  placeholder?: string
-  selectedOption?: number | number[]
+  id: string;
+  text: string;
+  type: QuestionType;
+  options?: string[];
+  placeholder?: string;
+  selectedOption?: number | number[];
 }
 
 export interface Dimension {
-  id: string
-  domain: string
-  name: string
-  questions: Question[]
+  id: string;
+  domain: string;
+  name: string;
+  questions: Question[];
 }
 
 export const companies: Company[] = [
@@ -135,18 +135,58 @@ export const companies: Company[] = [
     logo: "PR",
     evaluationProgress: 48,
   },
-]
+];
 
 export const domainScores: DomainScore[] = [
-  { domain: "Strategy & Vision", score: 82, maxScore: 100, maturity: "Advanced" },
-  { domain: "Data Infrastructure", score: 68, maxScore: 100, maturity: "Intermediate" },
-  { domain: "Talent & Skills", score: 55, maxScore: 100, maturity: "Developing" },
-  { domain: "Technology Stack", score: 75, maxScore: 100, maturity: "Advanced" },
-  { domain: "Governance & Ethics", score: 60, maxScore: 100, maturity: "Intermediate" },
-  { domain: "Culture & Change", score: 48, maxScore: 100, maturity: "Developing" },
-  { domain: "Partnerships & Ecosystem", score: 71, maxScore: 100, maturity: "Advanced" },
-  { domain: "ROI & Value Realization", score: 64, maxScore: 100, maturity: "Intermediate" },
-]
+  {
+    domain: "Strategy & Vision",
+    score: 82,
+    maxScore: 100,
+    maturity: "Advanced",
+  },
+  {
+    domain: "Data Infrastructure",
+    score: 68,
+    maxScore: 100,
+    maturity: "Intermediate",
+  },
+  {
+    domain: "Talent & Skills",
+    score: 55,
+    maxScore: 100,
+    maturity: "Developing",
+  },
+  {
+    domain: "Technology Stack",
+    score: 75,
+    maxScore: 100,
+    maturity: "Advanced",
+  },
+  {
+    domain: "Governance & Ethics",
+    score: 60,
+    maxScore: 100,
+    maturity: "Intermediate",
+  },
+  {
+    domain: "Culture & Change",
+    score: 48,
+    maxScore: 100,
+    maturity: "Developing",
+  },
+  {
+    domain: "Partnerships & Ecosystem",
+    score: 71,
+    maxScore: 100,
+    maturity: "Advanced",
+  },
+  {
+    domain: "ROI & Value Realization",
+    score: 64,
+    maxScore: 100,
+    maturity: "Intermediate",
+  },
+];
 
 export const trendData: TrendPoint[] = [
   { month: "Sep", score: 35 },
@@ -155,7 +195,7 @@ export const trendData: TrendPoint[] = [
   { month: "Dec", score: 58 },
   { month: "Jan", score: 68 },
   { month: "Feb", score: 78 },
-]
+];
 
 export const radarData = [
   { dimension: "Strategy", value: 82, fullMark: 100 },
@@ -166,7 +206,7 @@ export const radarData = [
   { dimension: "Culture", value: 48, fullMark: 100 },
   { dimension: "Partners", value: 71, fullMark: 100 },
   { dimension: "ROI", value: 64, fullMark: 100 },
-]
+];
 
 export const strengthsAndGaps = [
   { area: "Strategy & Vision", strength: 82, gap: 18 },
@@ -177,7 +217,7 @@ export const strengthsAndGaps = [
   { area: "ROI & Value Realization", strength: 64, gap: 36 },
   { area: "Talent & Skills", strength: 55, gap: 45 },
   { area: "Culture & Change", strength: 48, gap: 52 },
-]
+];
 
 // 8 Domains, 2 Dimensions each, 5 Questions per Dimension
 export const dimensions: Dimension[] = [
@@ -1084,46 +1124,46 @@ export const dimensions: Dimension[] = [
       },
     ],
   },
-]
+];
 
 export function getCompanyById(id: string): Company | undefined {
-  return companies.find((c) => c.id === id)
+  return companies.find((c) => c.id === id);
 }
 
 export function getMaturityLabel(score: number): string {
-  if (score >= 80) return "Advanced"
-  if (score >= 60) return "Intermediate"
-  if (score >= 40) return "Developing"
-  if (score >= 20) return "Emerging"
-  return "Initial"
+  if (score >= 100) return "Professional";
+  if (score >= 75) return "Transformative";
+  if (score >= 50) return "Explorer";
+  if (score >= 25) return "Learner";
+  return "Initial";
 }
 
 export function getMaturityColor(score: number): string {
-  if (score >= 80) return "text-accent"
-  if (score >= 60) return "text-primary"
-  if (score >= 40) return "text-chart-3"
-  return "text-destructive"
+  if (score >= 80) return "text-accent";
+  if (score >= 60) return "text-primary";
+  if (score >= 40) return "text-chart-3";
+  return "text-destructive";
 }
 
 export function getStatusColor(status: string): string {
   switch (status) {
     case "evaluated":
-      return "bg-accent/15 text-accent border-accent/30"
+      return "bg-accent/15 text-accent border-accent/30";
     case "in-progress":
-      return "bg-primary/15 text-primary border-primary/30"
+      return "bg-primary/15 text-primary border-primary/30";
     case "pending":
-      return "bg-muted text-muted-foreground border-border"
+      return "bg-muted text-muted-foreground border-border";
     default:
-      return "bg-muted text-muted-foreground border-border"
+      return "bg-muted text-muted-foreground border-border";
   }
 }
 
 export interface Consultant {
-  id: string
-  name: string
-  email: string
-  createdAt: string
-  companiesCount: number
+  id: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  companiesCount: number;
 }
 
 export const consultants: Consultant[] = [
@@ -1162,14 +1202,14 @@ export const consultants: Consultant[] = [
     createdAt: "2024-02-10",
     companiesCount: 2,
   },
-]
+];
 
 export function getConsultantById(id: string): Consultant | undefined {
-  return consultants.find((c) => c.id === id)
+  return consultants.find((c) => c.id === id);
 }
 
-export function getCompaniesByConsultant(
-  consultantId: string
-): Company[] {
-  return companies.filter((c) => c.consultant === getConsultantById(consultantId)?.name)
+export function getCompaniesByConsultant(consultantId: string): Company[] {
+  return companies.filter(
+    (c) => c.consultant === getConsultantById(consultantId)?.name,
+  );
 }
