@@ -42,11 +42,11 @@ function AppHeader() {
         </div>
 
         {/* Center - Title */}
-        <div className="flex-1 flex items-center justify-center">
+        {/* <div className="flex-1 flex items-center justify-center">
           <h1 className="text-lg font-semibold text-foreground">
             GenAI Readiness Assessment
           </h1>
-        </div>
+        </div> */}
 
         {/* Right Actions */}
         <div className="flex items-center justify-end gap-3">

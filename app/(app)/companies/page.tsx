@@ -66,7 +66,7 @@ function HeroStrip({ companies }: { companies: ConsultantCompany[] }) {
         mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       }`}
     >
-      <div className="mb-6">
+      <div className="my-6">
         <h1 className="text-3xl font-bold text-foreground mb-2">
           Company Portfolio
         </h1>

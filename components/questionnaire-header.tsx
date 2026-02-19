@@ -31,11 +31,11 @@ export function QuestionnaireHeader() {
         <div className="flex-1" />
 
         {/* Center - Company Name */}
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <h1 className="text-lg font-semibold text-foreground">
             GenAI Readiness Assessment
           </h1>
-        </div>
+        </div> */}
 
         {/* Right Actions */}
         <div className="flex-1 flex items-center justify-end gap-3">

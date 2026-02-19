@@ -194,14 +194,14 @@ export default function ReviewAnswersPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
           <div className="glass rounded-2xl p-4 sticky top-32 max-h-[calc(100vh-180px)] overflow-y-auto">
-            <div className="flex items-center justify-center mb-6 pb-4 border-b border-border/50">
+            {/* <div className="flex items-center justify-center mb-6 pb-4 border-b border-border/50">
               <Image
                 src="/logo-sidat-hyder.png"
                 alt="SIDAT HYDER"
                 width={120}
                 height={40}
               />
-            </div>
+            </div> */}
 
             <h3 className="font-semibold text-foreground mb-4 text-sm uppercase tracking-wide">
               Assessment Review
