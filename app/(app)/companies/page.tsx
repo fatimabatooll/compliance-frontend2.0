@@ -116,7 +116,7 @@ function CompanyCard({
   useEffect(() => {
     setMounted(true)
   }, [])
-
+  console.log(company,'companyData')
   const progress = company.evaluationProgress ?? 0
 
   const renderActions = () => {
@@ -144,13 +144,13 @@ function CompanyCard({
         <div className="space-y-2">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-medium text-muted-foreground">
-              Progress: {progress}%
+              Progress: {company?.evaluationProgress}%
             </p>
           </div>
           <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
             <div
               className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${progress}%` }}
+              style={{ width: `${company?.evaluationProgress}%` }}
             />
           </div>
           <div className="flex gap-2 mt-3">
@@ -228,7 +228,7 @@ function CompanyCard({
         </span>
       </div>
 
-      {company.status !== "pending" && (
+      {company.status === "evaluated" && (
         <div className="mb-4">
           <div className="flex items-baseline gap-1.5">
             <span
@@ -303,7 +303,7 @@ export default function CompaniesPage() {
       }),
     [companiesList, activeFilter, searchQuery]
   )
-
+   
   const handleAddCompany = async (
     newCompany: Omit<CreateCompanyInput, "consultantId">
   ) => {

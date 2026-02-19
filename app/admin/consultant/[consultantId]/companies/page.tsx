@@ -154,7 +154,7 @@ export default function ConsultantCompaniesPage({
           filteredCompanies.map((company) => (
             <div
               key={company.id}
-              className='glass rounded-2xl p-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-300'
+              className='glass rounded-2xl p-5 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col h-full'
             >
               <div className='flex items-start justify-between mb-4'>
                 <div className='flex items-center gap-3'>
@@ -203,7 +203,7 @@ export default function ConsultantCompaniesPage({
                 </div>
               )}
 
-              <div className='mt-4 pt-4 border-t border-border/50'>
+              <div className='mt-auto pt-4 border-t border-border/50'>
                 <div className='flex gap-2'>
                   <Link
                     href={`/admin/consultant/${consultantId}/company/${company.id}?index=${selectedReadiness}`}

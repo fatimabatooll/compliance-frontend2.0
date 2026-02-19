@@ -72,6 +72,7 @@ type ApiCompanyPayload = {
   overAllScore?: ApiScore[]
   isEvaluated?: boolean
   evaluationInProgress?: boolean
+  evaluationProgress?: number | boolean
   evaluationDetails?: Record<string, ApiEvaluationDetails>
 }
 
@@ -166,7 +167,9 @@ const deriveProgress = (
             ? safeNumber(fallback?.progress)
             : safeNumber(fallback?.progressPercentage, -1) >= 0
               ? safeNumber(fallback?.progressPercentage)
-              : safeNumber(fallback?.completion)
+              : safeNumber(fallback?.completion, -1) >= 0
+                ? safeNumber(fallback?.completion)
+                : safeNumber(raw.evaluationProgress)
   )
 }
 
