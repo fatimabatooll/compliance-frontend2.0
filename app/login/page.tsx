@@ -226,10 +226,6 @@ export default function LoginPage() {
               </p>
             )}
           </form>
-
-          <p className="mt-8 text-center text-xs text-muted-foreground">
-            Demo mode - any credentials will work
-          </p>
         </div>
       </div>
 

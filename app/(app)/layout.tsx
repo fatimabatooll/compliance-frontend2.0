@@ -29,7 +29,7 @@ function AppHeader() {
     .toUpperCase()
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-[#f6f7f9]">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-[#f6f7f9] dark:bg-[#101318]">
       <div className="glass-strong border-b border-border/50 mx-4 mt-3 rounded-2xl px-6 py-3 shadow-lg flex items-center justify-between">
         {/* Left - Logo */}
         <div className="flex items-center gap-3">

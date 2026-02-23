@@ -38,6 +38,7 @@ const MATURITY_COLORS_DARK = {
 const MATURITY_LEVELS = [0, 1, 2, 3, 4];
 
 export default function DimensionMaturityRadar({ data }) {
+  console.log("dimension",data)
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const maturityColors = isDark ? MATURITY_COLORS_DARK : MATURITY_COLORS_LIGHT;

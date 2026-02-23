@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import { use, useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
-import { getMaturityLabel } from "@/lib/ui-helpers"
-import companyService, { type CompanyDetails } from "@/services/companyService"
-import consultantService from "@/services/consultantService"
-import questionnaireService from "@/services/questionnaireService"
-import { useAuth } from "@/hooks/useAuth"
+import { use, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { getMaturityLabel } from "@/lib/ui-helpers";
+import companyService, { type CompanyDetails } from "@/services/companyService";
+import consultantService from "@/services/consultantService";
+import questionnaireService from "@/services/questionnaireService";
+import { useAuth } from "@/hooks/useAuth";
 import {
   BarChart,
   Bar,
@@ -20,264 +20,232 @@ import {
   PolarAngleAxis,
   PolarRadiusAxis,
   Radar,
-} from "recharts"
+} from "recharts";
+import CircularProgress from "@/components/charts/CircularProgress";
+import DimensionMaturityRadar from "@/components/charts/DimensionMaturityRadar";
 
 type DomainChartRow = {
-  domain: string
-  score: number
-  max: number
-}
+  domain: string;
+  score: number;
+  max: number;
+};
 
 type DimensionChartRow = {
-  name: string
-  value: number
-}
+  name: string;
+  value: number;
+};
 
 export default function CompanyDetailsPage({
   params,
 }: {
-  params: Promise<{ consultantId: string; companyId: string }>
+  params: Promise<{ consultantId: string; companyId: string }>;
 }) {
-  const { consultantId, companyId } = use(params)
-  const searchParams = useSearchParams()
-  const { token } = useAuth()
-  const readinessIndexType = searchParams.get("index") || "genai"
+  const { consultantId, companyId } = use(params);
+  const searchParams = useSearchParams();
+  const { token } = useAuth();
+  const readinessIndexType = searchParams.get("index") || "genai";
 
-  const [company, setCompany] = useState<CompanyDetails | null>(null)
-  const [consultantName, setConsultantName] = useState("Consultant")
-  const [domainScores, setDomainScores] = useState<DomainChartRow[]>([])
-  const [dimensionScores, setDimensionScores] = useState<DimensionChartRow[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [errorMessage, setErrorMessage] = useState("")
+  const [company, setCompany] = useState<CompanyDetails | null>(null);
+  const [consultantName, setConsultantName] = useState("Consultant");
+  const [domainScores, setDomainScores] = useState<DomainChartRow[]>([]);
+  const [dimensionScores, setDimensionScores] = useState<DimensionChartRow[]>(
+    [],
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (!token) return
+    if (!token) return;
 
     const fetchData = async () => {
       try {
-        setIsLoading(true)
-        setErrorMessage("")
+        setIsLoading(true);
+        setErrorMessage("");
 
         const [companyData, consultantData] = await Promise.all([
           companyService.getCompanyById(companyId, token, readinessIndexType),
           consultantService.getConsultantById(consultantId, token),
-        ])
+        ]);
 
-        setCompany(companyData)
+        setCompany(companyData);
         if (consultantData?.name) {
-          setConsultantName(consultantData.name)
+          setConsultantName(consultantData.name);
         }
 
         if (!companyData || companyData.status !== "evaluated") {
-          setDomainScores([])
-          setDimensionScores([])
-          return
+          setDomainScores([]);
+          setDimensionScores([]);
+          return;
         }
 
         try {
           const [domains, scores] = await Promise.all([
             questionnaireService.getDomains(readinessIndexType, token),
-            questionnaireService.viewResponses(companyId, readinessIndexType, token),
-          ])
+            questionnaireService.viewResponses(
+              companyId,
+              readinessIndexType,
+              token,
+            ),
+          ]);
 
           const domainScoreMap = new Map(
-            scores.map((item) => [item.domainId, item.domainScore])
-          )
+            scores.map((item) => [item.domainId, item.domainScore]),
+          );
           const dimensionScoreMap = new Map(
             scores.flatMap((item) =>
               item.dimensionScores.map((dimension) => [
                 dimension.dimensionId,
-                dimension.dimensionScore,
-              ])
-            )
-          )
+                dimension.maturityLevel,
+              ]),
+            ),
+          );
 
           const domainRows: DomainChartRow[] = domains.map((domain) => ({
             domain: domain.title,
             score: domainScoreMap.get(domain.id) ?? 0,
             max: 100,
-          }))
+          }));
 
           const dimensionRows: DimensionChartRow[] = domains
             .flatMap((domain) =>
               domain.dimensions.map((dimension) => ({
                 name: dimension.title,
-                value: dimensionScoreMap.get(dimension.id) ?? 0,
-              }))
+                value: Number(dimensionScoreMap.get(dimension.id) ?? 0),
+              })),
             )
-            .slice(0, 10)
+            .slice(0, 10);
 
-          setDomainScores(domainRows)
-          setDimensionScores(dimensionRows)
+          setDomainScores(domainRows);
+          setDimensionScores(dimensionRows);
         } catch {
-          setDomainScores([])
-          setDimensionScores([])
+          setDomainScores([]);
+          setDimensionScores([]);
         }
       } catch (error: unknown) {
         const message =
           typeof error === "object" && error && "message" in error
             ? String((error as { message: string }).message)
-            : "Failed to load company details."
-        setErrorMessage(message)
+            : "Failed to load company details.";
+        setErrorMessage(message);
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
 
-    fetchData()
-  }, [companyId, consultantId, token, readinessIndexType])
+    fetchData();
+  }, [companyId, consultantId, token, readinessIndexType]);
 
   const maturityLabel = useMemo(() => {
-    if (!company) return "-"
-    return getMaturityLabel(company.readinessScore)
-  }, [company])
+    if (!company) return "-";
+    return getMaturityLabel(company.readinessScore);
+  }, [company]);
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-border/50 p-8 text-center text-sm text-muted-foreground">
+      <div className='rounded-2xl border border-border/50 p-8 text-center text-sm text-muted-foreground'>
         Loading company details...
       </div>
-    )
+    );
   }
 
   if (errorMessage) {
     return (
-      <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+      <div className='rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive'>
         {errorMessage}
       </div>
-    )
+    );
   }
 
   if (!company) {
-    return <div>Company not found</div>
+    return <div>Company not found</div>;
   }
 
   if (company.status !== "evaluated") {
     return (
-      <div className="space-y-6">
+      <div className='space-y-6'>
         <div>
-          <h1 className="text-3xl font-bold text-foreground mb-1">
+          <h1 className='text-3xl font-bold text-foreground mb-1'>
             {company.name}
           </h1>
-          <p className="text-sm text-muted-foreground">{company.industry}</p>
+          <p className='text-sm text-muted-foreground'>{company.industry}</p>
         </div>
-        <div className="glass rounded-2xl p-12 flex flex-col items-center justify-center min-h-96">
-          <div className="h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center mb-4">
-            <div className="text-2xl">Not Ready</div>
+        <div className='glass rounded-2xl p-12 flex flex-col items-center justify-center min-h-96'>
+          <div className='h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center mb-4'>
+            <div className='text-2xl'>Not Ready</div>
           </div>
-          <h2 className="text-xl font-semibold text-foreground mb-2">
+          <h2 className='text-xl font-semibold text-foreground mb-2'>
             Company is not Evaluated
           </h2>
-          <p className="text-sm text-muted-foreground text-center max-w-md">
+          <p className='text-sm text-muted-foreground text-center max-w-md'>
             This company has not completed the GenAI Readiness Assessment yet.
             Please ensure the questionnaire is completed before viewing detailed
             analytics.
           </p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       <div>
-        <h1 className="text-3xl font-bold text-foreground mb-1">{company.name}</h1>
-        <p className="text-sm text-muted-foreground">
+        <h1 className='text-3xl font-bold text-foreground mb-1'>
+          {company.name}
+        </h1>
+        <p className='text-sm text-muted-foreground'>
           {company.industry}
-          {company.size ? ` • ${company.size}` : ""} • Assessed by {consultantName}
+          {company.size ? ` • ${company.size}` : ""} • Assessed by{" "}
+          {consultantName}
         </p>
       </div>
 
-      <div className="glass rounded-2xl p-6 border-l-4 border-l-primary">
-        <div className="flex items-start justify-between">
+      <div className='glass rounded-2xl p-6 border-l-4 border-l-primary'>
+        <div className='flex items-start justify-between'>
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-2">
+            <p className='text-sm font-medium text-muted-foreground mb-2'>
               Overall Readiness Score
             </p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-primary">
+            <div className='flex items-baseline gap-2'>
+              <span className='text-4xl font-bold text-primary'>
                 {company.readinessScore}
               </span>
-              <span className="text-sm text-muted-foreground">/100</span>
+              <span className='text-sm text-muted-foreground'>/100</span>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-xs font-medium text-muted-foreground mb-1">
+          <div className='text-right'>
+            <p className='text-xs font-medium text-muted-foreground mb-1'>
               Maturity Level
             </p>
-            <p className="text-lg font-semibold text-accent">{maturityLabel}</p>
+            <p className='text-lg font-semibold text-accent'>{maturityLabel}</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            Domain Scores
+      <div className='flex flex-col gap-6'>
+        <div className='glass rounded-2xl p-6'>
+          <h2 className='text-lg font-semibold text-foreground mb-4'>
+            Domain Maturity Overview
           </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={domainScores}
-              margin={{ top: 20, right: 30, left: 0, bottom: 60 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis
-                dataKey="domain"
-                angle={-45}
-                textAnchor="end"
-                height={80}
-                tick={{ fontSize: 12 }}
+          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8'>
+            {domainScores.map((domain) => (
+              <CircularProgress
+                key={domain.domain}
+                value={domain.score}
+                label={domain.domain}
               />
-              <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                }}
-              />
-              <Bar dataKey="score" fill="var(--primary)" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+            ))}
+          </div>
         </div>
 
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">
-            Dimensions Assessment
+        <div className='glass rounded-2xl p-6'>
+          <h2 className='text-lg font-semibold text-foreground mb-4'>
+            Dimension Maturity Analysis
           </h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <RadarChart data={dimensionScores}>
-              <PolarGrid stroke="var(--border)" />
-              <PolarAngleAxis
-                dataKey="name"
-                tick={{ fontSize: 10 }}
-                fill="var(--foreground)"
-              />
-              <PolarRadiusAxis
-                angle={90}
-                domain={[0, 100]}
-                tick={{ fontSize: 12 }}
-              />
-              <Radar
-                name="Score"
-                dataKey="value"
-                stroke="var(--primary)"
-                fill="var(--primary)"
-                fillOpacity={0.6}
-              />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                }}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+          <DimensionMaturityRadar data={dimensionScores} />
         </div>
       </div>
 
-      <div className="glass rounded-2xl p-6">
+      {/* <div className="glass rounded-2xl p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Detailed Domain Analysis
         </h2>
@@ -307,7 +275,7 @@ export default function CompanyDetailsPage({
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
     </div>
-  )
+  );
 }
