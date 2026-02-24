@@ -36,6 +36,13 @@ const MATURITY_COLORS_DARK = {
 };
 
 const MATURITY_LEVELS = [0, 1, 2, 3, 4];
+const MATURITY_SCORE_DISPLAY = {
+  0: "Not Started 0",
+  1: "Learner 1 - 25",
+  2: "Explorer 26 - 50",
+  3: "Transformative 51 - 75",
+  4: "Professional 76 - 100",
+};
 
 export default function DimensionMaturityRadar({ data }) {
   console.log("dimension",data)
@@ -147,7 +154,7 @@ export default function DimensionMaturityRadar({ data }) {
                   className='h-3 w-3 rounded-sm'
                   style={{ backgroundColor: "#3b82f6" }}
                 /> */}
-                <span>{MATURITY_LABELS[level]}</span>
+                <span>{MATURITY_SCORE_DISPLAY[level]}</span>
               </div>
             ))}
           </div>
