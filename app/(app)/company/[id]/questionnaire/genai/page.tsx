@@ -6,6 +6,12 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowRight, ArrowLeft, Check, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import companyService from "@/services/companyService";
 import questionnaireService, {
@@ -769,6 +775,7 @@ function QuestionCard({
   onAnswer,
 }: QuestionCardProps) {
   const type = getQuestionType(question);
+  const questionDescription = question.description?.trim();
   const options =
     question.options ||
     question.checkboxes?.map((item) => item.option) ||
@@ -781,9 +788,29 @@ function QuestionCard({
           {index + 1}
         </div>
         <div className='flex-1'>
-          <h3 className='text-base font-semibold text-foreground'>
-            {question.question || question.text || "Question"}
-          </h3>
+          <div className='flex items-start gap-2'>
+            <h3 className='text-base font-semibold text-foreground'>
+              {question.question || question.text || "Question"}
+            </h3>
+            {questionDescription && (
+              <TooltipProvider delayDuration={120}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type='button'
+                      className='mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-xs font-semibold text-muted-foreground hover:text-foreground'
+                      aria-label='Question description'
+                    >
+                      i
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent className='max-w-xs text-xs leading-relaxed'>
+                    {questionDescription}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
           <span className='inline-block mt-2 px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground rounded-md'>
             {type}
           </span>

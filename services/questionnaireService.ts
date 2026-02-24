@@ -10,6 +10,7 @@ export type Domain = {
       id: string
       question?: string
       text?: string
+      description?: string
       type?: string
     }[]
   }[]
@@ -19,6 +20,7 @@ export type DimensionQuestion = {
   id: string
   question?: string
   text?: string
+  description?: string
   type?: string
   maxScore?: number
   checkboxes?: { option: string; marks?: number }[]
@@ -47,6 +49,7 @@ export type DomainScore = {
         id?: string
         question?: string
         text?: string
+        description?: string
         type?: string
       }
     }[]
