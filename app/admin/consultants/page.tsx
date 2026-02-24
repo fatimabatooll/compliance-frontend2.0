@@ -50,6 +50,7 @@ const initialForm: AddConsultantForm = {
 export default function ConsultantsPage() {
   const { token } = useAuth();
   const [consultantsList, setConsultantsList] = useState<Consultant[]>([]);
+  const [selectedCompanyId, setSelectedCompanyId] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -93,14 +94,100 @@ export default function ConsultantsPage() {
     ? Math.max(...consultantsList.map((c) => c.companiesCount))
     : 0;
 
-  const barChartData = useMemo(
-    () =>
-      consultantsList.map((c) => ({
-        name: c.name.split(" ")[0],
-        companies: c.companiesCount,
-      })),
-    [consultantsList],
+  const isEvaluatedCompany = useCallback(
+    (
+      company: Consultant["companies"][number],
+      readinessIndexType: string = "genai",
+    ) => {
+      if (company.isEvaluated) return true;
+      const status =
+        company.evaluationDetails?.[readinessIndexType]?.status ??
+        company.evaluationDetails?.genai?.status;
+      if (typeof status === "number") return status === 2;
+      if (typeof status === "string") {
+        return status === "2" || status.toLowerCase() === "evaluated";
+      }
+      return false;
+    },
+    [],
   );
+
+  const evaluatedCompanyOptions = useMemo(
+    () =>
+      consultantsList.flatMap((consultant) =>
+        consultant.companies
+          .filter((company) => isEvaluatedCompany(company))
+          .map((company) => ({
+            id: company.id,
+            name: company.name,
+            consultantName: consultant.name,
+            domainScores: company.domainScores
+              .filter(
+                (item) =>
+                  (item.index || "genai") === "genai" &&
+                  !item.isDeleted &&
+                  typeof item.domainScore === "number" &&
+                  Number.isFinite(item.domainScore),
+              )
+              .map((item) => ({
+                domainName: item.domainName || "Domain",
+                domainScore: Number(item.domainScore),
+              })),
+          })),
+      ),
+    [consultantsList, isEvaluatedCompany],
+  );
+
+  const selectedCompany = useMemo(
+    () =>
+      evaluatedCompanyOptions.find(
+        (item) => item.id === selectedCompanyId,
+      ),
+    [evaluatedCompanyOptions, selectedCompanyId],
+  );
+
+  const barChartData = useMemo(() => {
+    if (selectedCompanyId === "all") {
+      const grouped = evaluatedCompanyOptions
+        .flatMap((company) =>
+          company.domainScores.map((domain) => ({
+            domainName: domain.domainName,
+            domainScore: domain.domainScore,
+          })),
+        )
+        .reduce<Record<string, { total: number; count: number }>>(
+          (acc, item) => {
+            const key = item.domainName;
+            if (!acc[key]) acc[key] = { total: 0, count: 0 };
+            acc[key].total += item.domainScore;
+            acc[key].count += 1;
+            return acc;
+          },
+          {},
+        );
+
+      return Object.entries(grouped).map(([domainName, stats]) => ({
+        name: domainName,
+        score: Math.round(stats.total / Math.max(stats.count, 1)),
+        companyName: "All Evaluated Companies",
+      }));
+    }
+
+    const selected = evaluatedCompanyOptions.find(
+      (item) => item.id === selectedCompanyId,
+    );
+    if (!selected) return [];
+
+    return selected.domainScores.map((domain) => ({
+      name: domain.domainName,
+      score: domain.domainScore,
+      companyName: selected.name,
+      consultantName: selected.consultantName,
+    }));
+  }, [
+    evaluatedCompanyOptions,
+    selectedCompanyId,
+  ]);
 
   const pieChartData = useMemo(
     () =>
@@ -110,14 +197,6 @@ export default function ConsultantsPage() {
       })),
     [consultantsList],
   );
-
-  const chartColors = [
-    "hsl(var(--chart-1))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
-  ];
 
   const resetForm = () => {
     setFormData(initialForm);
@@ -262,13 +341,30 @@ export default function ConsultantsPage() {
         </div>
       </div>
 
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
+      <div className='space-y-6'>
         <div className='glass rounded-2xl p-6'>
-          <h3 className='text-lg font-semibold text-foreground mb-4'>
-            Companies per Consultant
-          </h3>
-          <ResponsiveContainer width='100%' height={300}>
-            <BarChart data={barChartData}>
+          <div className='mb-4 flex items-center justify-between gap-3'>
+            <h3 className='text-lg font-semibold text-foreground'>
+              {selectedCompanyId === "all"
+                ? "Average Domain Scores Across All Evaluated Companies"
+                : `${selectedCompany?.name || "Company"} Domain Scores`}
+            </h3>
+            <select
+              title='Select company'
+              value={selectedCompanyId}
+              onChange={(event) => setSelectedCompanyId(event.target.value)}
+              className='h-9 rounded-lg border border-border/60 bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20'
+            >
+              <option value='all'>All</option>
+              {evaluatedCompanyOptions.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ResponsiveContainer width='100%' height={440}>
+            <BarChart data={barChartData} margin={{ top: 12, right: 16, left: 0, bottom: 72 }}>
               <CartesianGrid
                 strokeDasharray='3 3'
                 stroke='hsl(var(--border))'
@@ -278,10 +374,15 @@ export default function ConsultantsPage() {
                 dataKey='name'
                 stroke='hsl(var(--muted-foreground))'
                 style={{ fontSize: "12px" }}
+                interval={0}
+                angle={-30}
+                textAnchor='end'
+                height={56}
               />
               <YAxis
                 stroke='hsl(var(--muted-foreground))'
                 style={{ fontSize: "12px" }}
+                domain={[0, 100]}
               />
               <Tooltip
                 contentStyle={{
@@ -290,9 +391,17 @@ export default function ConsultantsPage() {
                   borderRadius: "8px",
                 }}
                 labelStyle={{ color: "hsl(var(--foreground))" }}
+                formatter={(value: number, _name, item) => {
+                  return [`${value}%`, "Domain Score"];
+                }}
+                labelFormatter={(_label, payload) => {
+                  const row = payload?.[0]?.payload;
+                  if (!row) return "";
+                  return `${row.companyName} • ${row.name}`;
+                }}
               />
               <Bar
-                dataKey='companies'
+                dataKey='score'
                 fill='hsl(var(--primary))'
                 radius={[8, 8, 0, 0]}
               />
