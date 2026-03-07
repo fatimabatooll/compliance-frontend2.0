@@ -341,10 +341,10 @@ export default function ConsultantsPage() {
         </div>
       </div>
 
-      <div className='space-y-6'>
+      <div className='space-y-6 '>
         <div className='glass rounded-2xl p-6'>
           <div className='mb-4 flex items-center justify-between gap-3'>
-            <h3 className='text-lg font-semibold text-foreground'>
+            <h3 className='text-lg font-semibold text-foreground capitalize'>
               {selectedCompanyId === "all"
                 ? "Average Domain Scores Across All Evaluated Companies"
                 : `${selectedCompany?.name || "Company"} Domain Scores`}
@@ -364,25 +364,28 @@ export default function ConsultantsPage() {
             </select>
           </div>
           <ResponsiveContainer width='100%' height={440}>
-            <BarChart data={barChartData} margin={{ top: 12, right: 16, left: 0, bottom: 72 }}>
+            <BarChart
+              data={barChartData}
+              layout='vertical'
+              margin={{ top: 12, right: 16, left: 12, bottom: 24 }}
+            >
               <CartesianGrid
                 strokeDasharray='3 3'
                 stroke='hsl(var(--border))'
                 opacity={0.3}
               />
               <XAxis
-                dataKey='name'
-                stroke='hsl(var(--muted-foreground))'
-                style={{ fontSize: "12px" }}
-                interval={0}
-                angle={-30}
-                textAnchor='end'
-                height={56}
-              />
-              <YAxis
+                type='number'
                 stroke='hsl(var(--muted-foreground))'
                 style={{ fontSize: "12px" }}
                 domain={[0, 100]}
+              />
+              <YAxis
+                type='category'
+                dataKey='name'
+                stroke='hsl(var(--muted-foreground))'
+                style={{ fontSize: "12px" }}
+                width={150}
               />
               <Tooltip
                 contentStyle={{
@@ -403,7 +406,7 @@ export default function ConsultantsPage() {
               <Bar
                 dataKey='score'
                 fill='hsl(var(--primary))'
-                radius={[8, 8, 0, 0]}
+                radius={[0, 8, 8, 0]}
               />
             </BarChart>
           </ResponsiveContainer>
