@@ -59,16 +59,16 @@ const renderCustomizedLabel = ({
 };
 
 export default function WorkloadPieChart({ data }: Props) {
-  const { theme, resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   return (
-    <ResponsiveContainer width='100%' height={340}>
-      <PieChart>
+    <ResponsiveContainer width='100%' height={460}>
+      <PieChart margin={{ top: 8, right: 8, left: 8, bottom: 64 }}>
         <Pie
           data={data}
-          cx='45%' // Slight left shift for better balance
-          cy='50%'
-          outerRadius={120} // ✅ MUCH BIGGER PIE
+          cx='50%'
+          cy='45%'
+          outerRadius='82%'
           dataKey='value'
           labelLine={true}
           label={renderCustomizedLabel}
@@ -97,12 +97,12 @@ export default function WorkloadPieChart({ data }: Props) {
         />
 
         <Legend
-          layout='vertical'
-          verticalAlign='middle'
-          align='right'
+          layout='horizontal'
+          verticalAlign='bottom'
+          align='center'
           wrapperStyle={{
             fontSize: "13px",
-            paddingLeft: "20px",
+            paddingTop: "8px",
           }}
         />
       </PieChart>
