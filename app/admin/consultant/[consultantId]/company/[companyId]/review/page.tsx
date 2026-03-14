@@ -35,7 +35,7 @@ const formatMaturity = (value?: string | number | null) => {
 
   if (typeof value === "number") {
     const maturityByLevel: Record<number, string> = {
-      0: "UNINITIATED",
+      0: "NOT STARTED",
       1: "LEARNER",
       2: "EXPLORER",
       3: "TRANSFORMATIVE",

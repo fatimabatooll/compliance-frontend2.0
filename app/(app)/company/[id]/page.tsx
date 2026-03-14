@@ -3,7 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { ArrowLeft, ClipboardCheck } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, FilePenLine } from "lucide-react";
 import { getMaturityColor, getMaturityLabel } from "@/lib/ui-helpers";
 import { cn } from "@/lib/utils";
 import companyService, { type CompanyDetails } from "@/services/companyService";
@@ -138,7 +138,6 @@ export default function CompanyDetailsPage({
   }
 
   if (!company) return <div>Company not found</div>;
-  console.log(company);
   return (
     <div className='space-y-6'>
       <div>
@@ -166,16 +165,31 @@ export default function CompanyDetailsPage({
           </div>
 
           {(company.status === "pending" ||
-            company.status === "in-progress") && (
-            <Link
-              href={`/company/${company.id}/questionnaire/genai`}
-              className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
-            >
-              <ClipboardCheck className='h-4 w-4' />
-              {company.status === "pending"
-                ? "Start Assessment"
-                : "Continue Assessment"}
-            </Link>
+            company.status === "in-progress" ||
+            company.status === "evaluated") && (
+            <div className='flex flex-wrap items-center gap-3'>
+              {company.status === "evaluated" && (
+                <Link
+                  href={`/company/${company.id}/questionnaire/genai`}
+                  className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
+                >
+                  <FilePenLine className='h-4 w-4' />
+                  Update Answers
+                </Link>
+              )}
+              {(company.status === "pending" ||
+                company.status === "in-progress") && (
+                <Link
+                  href={`/company/${company.id}/questionnaire/genai`}
+                  className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
+                >
+                  <ClipboardCheck className='h-4 w-4' />
+                  {company.status === "pending"
+                    ? "Start Assessment"
+                    : "Continue Assessment"}
+                </Link>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -116,22 +116,21 @@ function CompanyCard({
   useEffect(() => {
     setMounted(true)
   }, [])
-  console.log(company,'companyData')
   const progress = company.evaluationProgress ?? 0
 
   const renderActions = () => {
     if (company.status === "evaluated") {
       return (
-        <div className="flex gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Link
             href={`/company/${company.id}`}
-            className="flex-1 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors text-center"
+            className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors text-center"
           >
             Details
           </Link>
           <Link
             href={`/company/${company.id}/review-answers`}
-            className="flex-1 px-3 py-2 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:bg-secondary/80 transition-colors text-center"
+            className="px-3 py-2 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:bg-secondary/80 transition-colors text-center"
           >
             Review Answers
           </Link>

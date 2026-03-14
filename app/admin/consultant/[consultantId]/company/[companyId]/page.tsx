@@ -1,26 +1,15 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { getMaturityLabel } from "@/lib/ui-helpers";
+import { ArrowLeft } from "lucide-react";
+import { getMaturityColor, getMaturityLabel } from "@/lib/ui-helpers";
+import { cn } from "@/lib/utils";
 import companyService, { type CompanyDetails } from "@/services/companyService";
 import consultantService from "@/services/consultantService";
 import questionnaireService from "@/services/questionnaireService";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-} from "recharts";
 import CircularProgress from "@/components/charts/CircularProgress";
 import DimensionMaturityRadar from "@/components/charts/DimensionMaturityRadar";
 
@@ -160,41 +149,27 @@ export default function CompanyDetailsPage({
     return <div>Company not found</div>;
   }
 
-  if (company.status !== "evaluated") {
-    return (
-      <div className='space-y-6'>
-        <div>
-          <h1 className='text-3xl font-bold text-foreground mb-1'>
-            {company.name}
-          </h1>
-          <p className='text-sm text-muted-foreground'>{company.industry}</p>
-        </div>
-        <div className='glass rounded-2xl p-12 flex flex-col items-center justify-center min-h-96'>
-          <div className='h-16 w-16 rounded-2xl bg-secondary flex items-center justify-center mb-4'>
-            <div className='text-2xl'>Not Ready</div>
-          </div>
-          <h2 className='text-xl font-semibold text-foreground mb-2'>
-            Company is not Evaluated
-          </h2>
-          <p className='text-sm text-muted-foreground text-center max-w-md'>
-            This company has not completed the GenAI Readiness Assessment yet.
-            Please ensure the questionnaire is completed before viewing detailed
-            analytics.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className='space-y-6'>
       <div>
-        <h1 className='text-3xl font-bold text-foreground mb-1'>
+        <p className='text-sm text-muted-foreground'>
+          <Link
+            href={`/admin/consultant/${consultantId}/companies`}
+            className='inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors my-2'
+          >
+            <ArrowLeft className='h-3.5 w-3.5' />
+            Back to companies
+          </Link>
+        </p>
+        <h1 className='text-3xl font-bold text-foreground mb-2 capitalize'>
           {company.name}
         </h1>
         <p className='text-sm text-muted-foreground'>
           {company.industry}
-          {company.size ? ` • ${company.size}` : ""} • Assessed by{" "}
+          {company.strength ? ` • ${company.strength}` : ""}
+        </p>
+        <p className='text-sm text-muted-foreground mt-1'>
+          {company.personName} • {company.designation} • Assessed by{" "}
           {consultantName}
         </p>
       </div>
@@ -206,7 +181,12 @@ export default function CompanyDetailsPage({
               Overall Readiness Score
             </p>
             <div className='flex items-baseline gap-2'>
-              <span className='text-4xl font-bold text-primary'>
+              <span
+                className={cn(
+                  "text-4xl font-bold",
+                  getMaturityColor(company.readinessScore),
+                )}
+              >
                 {company.readinessScore}
               </span>
               <span className='text-sm text-muted-foreground'>/100</span>
@@ -221,61 +201,41 @@ export default function CompanyDetailsPage({
         </div>
       </div>
 
-      <div className='flex flex-col gap-6'>
-        <div className='glass rounded-2xl p-6'>
-          <h2 className='text-lg font-semibold text-foreground mb-4'>
-            Domain Maturity Overview
+      {company.status !== "evaluated" ? (
+        <div className='glass rounded-2xl p-12 flex flex-col items-center justify-center min-h-96'>
+          <h2 className='text-xl font-semibold text-foreground mb-2'>
+            Assessment Not Completed
           </h2>
-          <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8'>
-            {domainScores.map((domain) => (
-              <CircularProgress
-                key={domain.domain}
-                value={domain.score}
-                label={domain.domain}
-              />
-            ))}
+          <p className='text-sm text-muted-foreground text-center max-w-md'>
+            This company has not completed the selected readiness assessment
+            yet.
+          </p>
+        </div>
+      ) : (
+        <div className='flex flex-col gap-6'>
+          <div className='glass rounded-2xl p-6'>
+            <h2 className='text-lg font-semibold text-foreground mb-4'>
+              Domain Maturity Overview
+            </h2>
+            <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8'>
+              {domainScores.map((domain) => (
+                <CircularProgress
+                  key={domain.domain}
+                  value={domain.score}
+                  label={domain.domain}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className='glass rounded-2xl p-6'>
+            <h2 className='text-lg font-semibold text-foreground mb-4'>
+              Dimension Maturity Analysis
+            </h2>
+            <DimensionMaturityRadar data={dimensionScores} />
           </div>
         </div>
-
-        <div className='glass rounded-2xl p-6'>
-          <h2 className='text-lg font-semibold text-foreground mb-4'>
-            Dimension Maturity Analysis
-          </h2>
-          <DimensionMaturityRadar data={dimensionScores} />
-        </div>
-      </div>
-
-      {/* <div className="glass rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Detailed Domain Analysis
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {domainScores.map((domain) => (
-            <div
-              key={domain.domain}
-              className="rounded-xl border border-border/50 p-4 bg-secondary/20"
-            >
-              <p className="text-sm font-medium text-foreground mb-2">
-                {domain.domain}
-              </p>
-              <div className="flex items-end gap-2 mb-3">
-                <span className="text-2xl font-bold text-primary">
-                  {domain.score}
-                </span>
-                <span className="text-xs text-muted-foreground mb-1">
-                  /{domain.max}
-                </span>
-              </div>
-              <div className="w-full h-2 bg-border/50 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${(domain.score / domain.max) * 100}%` }}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div> */}
+      )}
     </div>
   );
 }

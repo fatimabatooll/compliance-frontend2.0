@@ -35,7 +35,7 @@ const formatMaturity = (value?: string | number | null) => {
   if (value === undefined || value === null) return "N/A"
   if (typeof value === "number") {
     const maturityByLevel: Record<number, string> = {
-      0: "UNINITIATED",
+      0: "NOT STARTED",
       1: "LEARNER",
       2: "EXPLORER",
       3: "TRANSFORMATIVE",
@@ -181,13 +181,15 @@ export default function ReviewAnswersPage({
   return (
     <div className="min-h-screen bg-background">
       <div className="mb-4">
-        <Link
-          href={`/company/${id}`}
-          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-3"
-        >
-          <ChevronLeft className="h-3.5 w-3.5" />
-          Back to details
-        </Link>
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <Link
+            href={`/company/${id}`}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+            Back to details
+          </Link>
+        </div>
         <h1 className="text-2xl font-bold text-foreground">{companyName}</h1>
         <p className="text-sm text-muted-foreground">Assessment Review</p>
       </div>

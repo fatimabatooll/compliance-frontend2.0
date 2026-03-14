@@ -38,6 +38,7 @@ type ScoreRecord = {
 
 const READINESS_INDEX = "genai";
 const MIN_REQUIRED_ANSWERS_TO_SUBMIT = 80;
+const SCORE_ALREADY_GENERATED_MESSAGE = "score already generated";
 
 const hasAnswer = (value: AnswerValue) => {
   if (value === undefined || value === null) return false;
@@ -45,6 +46,9 @@ const hasAnswer = (value: AnswerValue) => {
   if (Array.isArray(value)) return value.length > 0;
   return true;
 };
+
+const isScoreAlreadyGeneratedError = (message: string) =>
+  message.toLowerCase().includes(SCORE_ALREADY_GENERATED_MESSAGE);
 
 const getQuestionType = (question: DimensionQuestion) => {
   const type = question.type || "text";
@@ -319,6 +323,10 @@ export default function QuestionnairePage({
           typeof error === "object" && error && "message" in error
             ? String((error as { message: string }).message)
             : "Failed to load questionnaire.";
+        if (isScoreAlreadyGeneratedError(message)) {
+          router.replace("/companies");
+          return;
+        }
         setErrorMessage(message);
       } finally {
         setIsLoading(false);
@@ -326,7 +334,7 @@ export default function QuestionnairePage({
     };
 
     fetchInitialData();
-  }, [id, token]);
+  }, [id, token, router]);
 
   useEffect(() => {
     if (!token || !currentMeta) return;
@@ -476,6 +484,10 @@ export default function QuestionnairePage({
         typeof error === "object" && error && "message" in error
           ? String((error as { message: string }).message)
           : "Failed to save responses.";
+      if (isScoreAlreadyGeneratedError(message)) {
+        router.replace("/companies");
+        return;
+      }
       setErrorMessage(message);
     } finally {
       setIsSaving(false);
