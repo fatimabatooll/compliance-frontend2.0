@@ -162,7 +162,7 @@ export default function ConsultantCompaniesPage({
                     {company.logo}
                   </div>
                   <div>
-                    <h3 className='text-sm font-semibold text-foreground'>
+                    <h3 className='text-sm font-semibold text-foreground capitalize'>
                       {company.name}
                     </h3>
                     <p className='text-xs text-muted-foreground'>

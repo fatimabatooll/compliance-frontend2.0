@@ -190,7 +190,7 @@ export default function ReviewAnswersPage({
             Back to details
           </Link>
         </div>
-        <h1 className="text-2xl font-bold text-foreground">{companyName}</h1>
+        <h1 className="text-2xl font-bold text-foreground capitalize">{companyName}</h1>
         <p className="text-sm text-muted-foreground">Assessment Review</p>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

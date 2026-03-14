@@ -353,7 +353,7 @@ export default function ConsultantsPage() {
               title='Select company'
               value={selectedCompanyId}
               onChange={(event) => setSelectedCompanyId(event.target.value)}
-              className='h-9 rounded-lg border border-border/60 bg-card px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20'
+              className='h-9 rounded-lg border border-border/60 bg-card px-3 text-sm text-foreground capitalize focus:outline-none focus:ring-2 focus:ring-primary/20'
             >
               <option value='all'>All</option>
               {evaluatedCompanyOptions.map((company) => (

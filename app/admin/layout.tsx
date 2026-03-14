@@ -75,11 +75,14 @@ function AdminHeader() {
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuItem disabled>
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <span className="font-semibold">{displayName}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span
+                    className="block max-w-full truncate text-xs text-muted-foreground"
+                    title={user?.email || "admin@sidathyder.com"}
+                  >
                     {user?.email || "admin@sidathyder.com"}
                   </span>
                 </div>

@@ -204,7 +204,7 @@ function CompanyCard({
             {company.logo}
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
+            <h3 className="text-sm font-semibold text-foreground hover:text-primary transition-colors capitalize">
               {company.name}
             </h3>
             <p className="text-xs text-muted-foreground">{company.industry}</p>

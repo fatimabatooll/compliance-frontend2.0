@@ -543,7 +543,7 @@ export default function QuestionnairePage({
         <div className='max-w-7xl mx-auto px-4 py-4'>
           <div className='flex items-center justify-between'>
             <div>
-              <h2 className='text-lg font-semibold text-foreground'>
+              <h2 className='text-lg font-semibold text-foreground capitalize'>
                 {companyName}
               </h2>
               <p className='text-sm text-muted-foreground'>
