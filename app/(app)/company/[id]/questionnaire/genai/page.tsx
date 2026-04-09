@@ -46,7 +46,6 @@ const hasAnswer = (value: AnswerValue) => {
   if (Array.isArray(value)) return value.length > 0;
   return true;
 };
-
 const isScoreAlreadyGeneratedError = (message: string) =>
   message.toLowerCase().includes(SCORE_ALREADY_GENERATED_MESSAGE);
 
@@ -789,8 +788,8 @@ function QuestionCard({
   const type = getQuestionType(question);
   const questionDescription = question.description?.trim();
   const options =
-    question.options ||
-    question.checkboxes?.map((item) => item.option) ||
+    question.options?.map((o) => o.trim()) ||
+    question.checkboxes?.map((item) => item.option.trim()) ||
     (type === "binary" ? ["Yes", "No"] : []);
 
   return (
