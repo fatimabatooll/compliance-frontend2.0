@@ -686,9 +686,9 @@ export default function QuestionnairePage({
                         {savedPulse && (
                           <div className='flex items-center gap-2 text-accent animate-pulse'>
                             <Save className='h-4 w-4' />
-                            <span className='text-sm font-medium'>
+                            {/* <span className='text-sm font-medium'>
                               Editing...
-                            </span>
+                            </span> */}
                           </div>
                         )}
                       </div>
