@@ -682,16 +682,16 @@ export default function QuestionnairePage({
 
                   <div className='glass rounded-2xl p-6 sticky bottom-0'>
                     <div className='flex items-center justify-between mb-4'>
-                      {/* <div className='flex items-center gap-2'>
-                        {savedPulse && (
+                      <div className='flex items-center gap-2'>
+                        {/* {savedPulse && (
                           <div className='flex items-center gap-2 text-accent animate-pulse'>
                             <Save className='h-4 w-4' />
                             <span className='text-sm font-medium'>
                               Editing...
                             </span>
                           </div>
-                        )}
-                      </div> */}
+                        )} */}
+                      </div>
                       <Link
                         href={`/company/${id}`}
                         className='text-sm text-muted-foreground hover:text-foreground transition-colors'
