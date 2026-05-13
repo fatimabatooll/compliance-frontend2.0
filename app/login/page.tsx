@@ -9,6 +9,77 @@ import { useAuth } from "@/hooks/useAuth"
 
 type Role = "admin" | "consultant"
 
+type LoginErrors = {
+  email?: string
+  password?: string
+  form?: string
+}
+
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+const validateLoginForm = (email: string, password: string): LoginErrors => {
+  const errors: LoginErrors = {}
+  const trimmedEmail = email.trim()
+
+  if (!trimmedEmail) {
+    errors.email = "Email is required."
+  } else if (!emailPattern.test(trimmedEmail)) {
+    errors.email = "Enter a valid email address."
+  }
+
+  if (!password) {
+    errors.password = "Password is required."
+  }
+
+  return errors
+}
+
+const getLoginErrorsFromServer = (
+  error: unknown,
+  selectedRole: Role
+): LoginErrors => {
+  const message =
+    typeof error === "object" && error
+      ? "message" in error && error.message
+        ? String(error.message)
+        : "error" in error && error.error
+          ? String(error.error)
+          : ""
+      : ""
+
+  const normalizedMessage = message.toLowerCase()
+
+  if (
+    normalizedMessage.includes("password") &&
+    !normalizedMessage.includes("email")
+  ) {
+    return { password: message }
+  }
+
+  if (
+    normalizedMessage.includes("email") ||
+    normalizedMessage.includes("user") ||
+    normalizedMessage.includes("account") ||
+    normalizedMessage.includes("not found")
+  ) {
+    return { email: message }
+  }
+
+  if (
+    normalizedMessage.includes("invalid") ||
+    normalizedMessage.includes("incorrect")
+  ) {
+    const roleLabel = selectedRole === "admin" ? "Admin" : "Consultant"
+
+    return {
+      email: `You are not registered as a ${roleLabel}.`,
+      password: "Check that the password is correct.",
+    }
+  }
+
+  return { form: message || "Unable to sign in. Please try again." }
+}
+
 function MeshBackground() {
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -51,7 +122,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
+  const [errors, setErrors] = useState<LoginErrors>({})
   const { login, isAuthenticated, isInitializing, user } = useAuth()
 
   useEffect(() => {
@@ -65,15 +136,19 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setErrorMessage("")
+    const validationErrors = validateLoginForm(email, password)
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors)
+      return
+    }
+
+    setErrors({})
     setIsLoading(true)
     try {
-      await login({ email, password, role })
+      await login({ email: email.trim(), password, role })
       router.replace(role === "admin" ? "/admin/consultants" : "/companies")
-    } catch (error: any) {
-      setErrorMessage(
-        error?.message || error?.error || "Incorrect email or password."
-      )
+    } catch (error: unknown) {
+      setErrors(getLoginErrorsFromServer(error, role))
     } finally {
       setIsLoading(false)
     }
@@ -152,7 +227,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-5" noValidate>
             <div>
               <label
                 htmlFor="email"
@@ -164,14 +239,31 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setErrors((current) => ({ ...current, email: undefined }))
+                }}
+                aria-invalid={Boolean(errors.email)}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 placeholder={
                   role === "admin"
                     ? "admin@genai-index.com"
                     : "consultant@genai-index.com"
                 }
-                className="w-full h-11 px-4 rounded-xl bg-secondary/70 border border-border/60 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
+                className={`w-full h-11 px-4 rounded-xl bg-secondary/70 border text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                  errors.email
+                    ? "border-destructive/70 focus:ring-destructive/25 focus:border-destructive"
+                    : "border-border/60 focus:ring-primary/30 focus:border-primary/50"
+                }`}
               />
+              {errors.email && (
+                <p
+                  id="email-error"
+                  className="mt-2 text-xs text-destructive font-medium"
+                >
+                  {errors.email}
+                </p>
+              )}
             </div>
 
             <div>
@@ -186,9 +278,20 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value)
+                    setErrors((current) => ({ ...current, password: undefined }))
+                  }}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={
+                    errors.password ? "password-error" : undefined
+                  }
                   placeholder="Enter your password"
-                  className="w-full h-11 px-4 pr-11 rounded-xl bg-secondary/70 border border-border/60 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all duration-200"
+                  className={`w-full h-11 px-4 pr-11 rounded-xl bg-secondary/70 border text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                    errors.password
+                      ? "border-destructive/70 focus:ring-destructive/25 focus:border-destructive"
+                      : "border-border/60 focus:ring-primary/30 focus:border-primary/50"
+                  }`}
                 />
                 <button
                   type="button"
@@ -203,6 +306,14 @@ export default function LoginPage() {
                   )}
                 </button>
               </div>
+              {errors.password && (
+                <p
+                  id="password-error"
+                  className="mt-2 text-xs text-destructive font-medium"
+                >
+                  {errors.password}
+                </p>
+              )}
             </div>
 
             <button
@@ -220,9 +331,9 @@ export default function LoginPage() {
               )}
               <div className="absolute inset-0 bg-foreground/5 opacity-0 hover:opacity-100 transition-opacity duration-300" />
             </button>
-            {errorMessage && (
+            {errors.form && (
               <p className="text-xs text-destructive font-medium text-center">
-                {errorMessage}
+                {errors.form}
               </p>
             )}
           </form>
@@ -263,9 +374,9 @@ export default function LoginPage() {
             }`}
           >
             {[
-              { label: "Companies Assessed", value: "200+" },
+              { label: "Companies Assessed", value: "20+" },
               { label: "Avg Score Lift", value: "+34%" },
-              { label: "Dimensions", value: "6" },
+              { label: "Dimensions", value: "8" },
             ].map((stat) => (
               <div
                 key={stat.label}
