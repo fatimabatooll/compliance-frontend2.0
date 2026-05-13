@@ -47,6 +47,24 @@ const initialForm: AddConsultantForm = {
   confirmPassword: "",
 };
 
+const passwordRules = [
+  {
+    label: "At least 8 characters",
+    errorMessage: "Password must be at least 8 characters.",
+    isValid: (password: string) => password.length >= 8,
+  },
+  {
+    label: "At least one uppercase letter",
+    errorMessage: "Password must include at least one uppercase letter.",
+    isValid: (password: string) => /[A-Z]/.test(password),
+  },
+];
+
+const getPasswordError = (password: string) => {
+  const failedRule = passwordRules.find((rule) => !rule.isValid(password));
+  return failedRule?.errorMessage ?? "";
+};
+
 export default function ConsultantsPage() {
   const { token } = useAuth();
   const [consultantsList, setConsultantsList] = useState<Consultant[]>([]);
@@ -221,8 +239,9 @@ export default function ConsultantsPage() {
       setFormError("Please fill in all required fields.");
       return;
     }
-    if (formData.password.length < 8) {
-      setFormError("Password must be at least 8 characters.");
+    const passwordError = getPasswordError(formData.password);
+    if (passwordError) {
+      setFormError(passwordError);
       return;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -550,8 +569,24 @@ export default function ConsultantsPage() {
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, password: e.target.value }))
                 }
-                placeholder='Minimum 8 characters'
+                placeholder='Create a password'
               />
+              <div className='space-y-1 text-xs'>
+                {passwordRules.map((rule) => {
+                  const isValid = rule.isValid(formData.password);
+
+                  return (
+                    <p
+                      key={rule.label}
+                      className={
+                        isValid ? "text-emerald-600" : "text-muted-foreground"
+                      }
+                    >
+                      {isValid ? "Met:" : "Required:"} {rule.label}
+                    </p>
+                  );
+                })}
+              </div>
             </div>
 
             <div className='space-y-2'>
