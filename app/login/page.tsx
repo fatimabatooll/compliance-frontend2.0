@@ -69,10 +69,10 @@ const getLoginErrorsFromServer = (
     normalizedMessage.includes("invalid") ||
     normalizedMessage.includes("incorrect")
   ) {
-    const roleLabel = selectedRole === "admin" ? "Admin" : "Consultant"
+    const roleLabel = selectedRole === "admin" ? "an Admin" : "a Consultant"
 
     return {
-      email: `You are not registered as a ${roleLabel}.`,
+      email: `You are not registered as ${roleLabel}.`,
       password: "Check that the password is correct.",
     }
   }
@@ -156,41 +156,41 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Left side - Login Form (narrower) */}
-      <div className="relative z-10 w-full lg:w-[480px] xl:w-[520px] flex flex-col justify-center px-8 md:px-16">
+      {/* Left side - Login Form */}
+      <div className="relative z-10 w-full lg:w-[540px] xl:w-[600px] flex flex-col justify-center px-8 md:px-14 xl:px-20 py-10">
         <div
-          className={`max-w-sm mx-auto w-full transition-all duration-700 ${
+          className={`max-w-md mx-auto w-full transition-all duration-700 ${
             mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"
           }`}
         >
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-12">
-            <div className="h-10 w-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
-              <Sparkles className="h-5 w-5 text-primary-foreground" />
+          <div className="flex items-center gap-3.5 mb-14">
+            <div className="h-12 w-12 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
+              <Sparkles className="h-6 w-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground leading-none">
+              <h1 className="text-xl font-bold text-foreground leading-none">
                 GenAI Readiness
               </h1>
-              <p className="text-[10px] font-medium text-muted-foreground tracking-widest uppercase">
+              <p className="text-[11px] font-medium text-muted-foreground tracking-widest uppercase mt-1">
                 Index Platform
               </p>
             </div>
           </div>
 
           {/* Welcome text */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-foreground mb-2">
+          <div className="mb-9">
+            <h2 className="text-3xl font-bold text-foreground mb-3">
               Welcome back
             </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-base text-muted-foreground leading-relaxed">
               Sign in to continue assessing organizational AI readiness
             </p>
           </div>
 
           {/* Role Selector - Segmented Control */}
-          <div className="mb-6">
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+          <div className="mb-7">
+            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3.5">
               Role
             </label>
             <div className="relative flex bg-secondary rounded-xl p-1">
@@ -204,7 +204,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setRole("admin")}
-                className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                className={`relative z-10 flex-1 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
                   role === "admin"
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -215,7 +215,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setRole("consultant")}
-                className={`relative z-10 flex-1 py-2.5 text-sm font-medium rounded-lg transition-colors duration-200 ${
+                className={`relative z-10 flex-1 py-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
                   role === "consultant"
                     ? "text-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -227,11 +227,11 @@ export default function LoginPage() {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} className="space-y-5" noValidate>
+          <form onSubmit={handleLogin} className="space-y-6" noValidate>
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2"
+                className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5"
               >
                 Email
               </label>
@@ -250,7 +250,7 @@ export default function LoginPage() {
                     ? "admin@genai-index.com"
                     : "consultant@genai-index.com"
                 }
-                className={`w-full h-11 px-4 rounded-xl bg-secondary/70 border text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                className={`w-full h-12 px-4 rounded-xl bg-secondary/70 border text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all duration-200 ${
                   errors.email
                     ? "border-destructive/70 focus:ring-destructive/25 focus:border-destructive"
                     : "border-border/60 focus:ring-primary/30 focus:border-primary/50"
@@ -269,7 +269,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2"
+                className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5"
               >
                 Password
               </label>
@@ -287,7 +287,7 @@ export default function LoginPage() {
                     errors.password ? "password-error" : undefined
                   }
                   placeholder="Enter your password"
-                  className={`w-full h-11 px-4 pr-11 rounded-xl bg-secondary/70 border text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all duration-200 ${
+                  className={`w-full h-12 px-4 pr-12 rounded-xl bg-secondary/70 border text-base text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 transition-all duration-200 ${
                     errors.password
                       ? "border-destructive/70 focus:ring-destructive/25 focus:border-destructive"
                       : "border-border/60 focus:ring-primary/30 focus:border-primary/50"
@@ -296,13 +296,13 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="h-5 w-5" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="h-5 w-5" />
                   )}
                 </button>
               </div>
@@ -319,14 +319,14 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="relative w-full h-11 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-2 group overflow-hidden"
+              className="relative w-full h-12 rounded-xl gradient-primary text-primary-foreground text-base font-semibold transition-all duration-300 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70 flex items-center justify-center gap-2 group overflow-hidden"
             >
               {isLoading ? (
                 <div className="h-5 w-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
                 <>
                   Sign in as {role === "admin" ? "Admin" : "Consultant"}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+                  <ArrowRight className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-0.5" />
                 </>
               )}
               <div className="absolute inset-0 bg-foreground/5 opacity-0 hover:opacity-100 transition-opacity duration-300" />
@@ -344,24 +344,24 @@ export default function LoginPage() {
       <div className="hidden lg:flex flex-1 relative bg-card overflow-hidden rounded-l-3xl">
         <MeshBackground />
         {/* Content overlay */}
-        <div className="relative z-10 flex flex-col items-center justify-center w-full px-16">
+        <div className="relative z-10 flex flex-col items-center justify-center w-full px-16 xl:px-24">
           <div
             className={`text-center transition-all duration-1000 delay-300 ${
               mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8">
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/10 border border-primary/20 mb-9">
               <div className="h-2 w-2 rounded-full bg-primary animate-pulse-glow" />
-              <span className="text-xs font-medium text-primary">
+              <span className="text-sm font-medium text-primary">
                 AI-Powered Assessment
               </span>
             </div>
-            <h2 className="text-4xl xl:text-5xl font-bold text-foreground mb-4 leading-tight text-balance">
+            <h2 className="text-5xl xl:text-6xl font-bold text-foreground mb-5 leading-tight text-balance">
               Measure Your
               <br />
               <span className="gradient-text">AI Readiness</span>
             </h2>
-            <p className="text-base text-muted-foreground max-w-md mx-auto leading-relaxed">
+            <p className="text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
               Comprehensive assessment framework for evaluating organizational
               readiness for Generative AI adoption
             </p>
@@ -369,7 +369,7 @@ export default function LoginPage() {
 
           {/* Floating stat cards */}
           <div
-            className={`mt-12 flex gap-4 transition-all duration-1000 delay-500 ${
+            className={`mt-14 flex gap-5 transition-all duration-1000 delay-500 ${
               mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}
           >
@@ -380,9 +380,9 @@ export default function LoginPage() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="glass rounded-xl px-5 py-4 text-center min-w-[120px]"
+                className="glass rounded-xl px-6 py-5 text-center min-w-[140px]"
               >
-                <p className="text-xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-foreground">
                   {stat.value}
                 </p>
                 <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-1">
