@@ -10,7 +10,7 @@ import companyService, {
 } from "@/services/companyService";
 import { useAuth } from "@/hooks/useAuth";
 
-const statusFilters = ["All", "Evaluated", "In Progress", "Not Evaluated"];
+const statusFilters = ["All", "Evaluated", "In Progress", "Pending"];
 const readinessOptions = [
   { label: "Gen AI", value: "genai" },
   { label: "Web 3.0", value: "web3.0" },
@@ -62,7 +62,7 @@ export default function ConsultantCompaniesPage({
   const toStatus = (filter: string) => {
     if (filter === "Evaluated") return "evaluated";
     if (filter === "In Progress") return "in-progress";
-    if (filter === "Not Evaluated") return "pending";
+    if (filter === "Pending") return "pending";
     return "all";
   };
 
