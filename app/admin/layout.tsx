@@ -21,6 +21,7 @@ function AdminHeader() {
   const { user, logout } = useAuth()
 
   const displayName = user?.name || "Administrator"
+  const roleLabel = user?.role === "admin" ? "Admin" : "Administrator"
   const initials = displayName
     .split(" ")
     .map((part) => part[0])
@@ -70,8 +71,13 @@ function AdminHeader() {
                 <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-sm font-bold text-primary-foreground">
                   {initials}
                 </div>
-                <span className="text-sm font-medium text-foreground hidden sm:inline">
-                  {displayName}
+                <span className="hidden sm:flex flex-col items-start leading-tight">
+                  <span className="text-sm font-medium text-foreground">
+                    {displayName}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {roleLabel}
+                  </span>
                 </span>
               </button>
             </DropdownMenuTrigger>
@@ -79,6 +85,9 @@ function AdminHeader() {
               <DropdownMenuItem disabled>
                 <div className="flex min-w-0 flex-col">
                   <span className="font-semibold">{displayName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {roleLabel}
+                  </span>
                   <span
                     className="block max-w-full truncate text-xs text-muted-foreground"
                     title={user?.email || "admin@sidathyder.com"}

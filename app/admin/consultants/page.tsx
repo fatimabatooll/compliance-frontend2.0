@@ -525,7 +525,16 @@ export default function ConsultantsPage() {
         </div>
       </div>
 
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+      <Dialog
+        open={isModalOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setIsModalOpen(true);
+            return;
+          }
+          handleCloseModal();
+        }}
+      >
         <DialogContent className='max-w-md'>
           <DialogHeader>
             <DialogTitle className='text-xl'>Add New Consultant</DialogTitle>
@@ -534,11 +543,17 @@ export default function ConsultantsPage() {
               access.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleAddConsultant} className='space-y-4 mt-2'>
+          <form
+            onSubmit={handleAddConsultant}
+            className='space-y-4 mt-2'
+            autoComplete='off'
+          >
             <div className='space-y-2'>
               <Label htmlFor='userName'>Name</Label>
               <Input
                 id='userName'
+                name='consultantUserName'
+                autoComplete='off'
                 value={formData.userName}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, userName: e.target.value }))
@@ -551,7 +566,9 @@ export default function ConsultantsPage() {
               <Label htmlFor='email'>Email</Label>
               <Input
                 id='email'
+                name='consultantEmail'
                 type='email'
+                autoComplete='off'
                 value={formData.email}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, email: e.target.value }))
@@ -564,7 +581,9 @@ export default function ConsultantsPage() {
               <Label htmlFor='password'>Password</Label>
               <Input
                 id='password'
+                name='consultantNewPassword'
                 type='password'
+                autoComplete='new-password'
                 value={formData.password}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, password: e.target.value }))
@@ -593,7 +612,9 @@ export default function ConsultantsPage() {
               <Label htmlFor='confirmPassword'>Confirm Password</Label>
               <Input
                 id='confirmPassword'
+                name='consultantConfirmPassword'
                 type='password'
+                autoComplete='new-password'
                 value={formData.confirmPassword}
                 onChange={(e) =>
                   setFormData((prev) => ({
