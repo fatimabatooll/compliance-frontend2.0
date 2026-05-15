@@ -15,6 +15,13 @@ type LoginInput = {
   role: AuthRole
 }
 
+type ForgetPasswordInput = {
+  email: string
+  newPassword: string
+  confirmPassword?: string
+  role: AuthRole
+}
+
 type ApiLoginResponse = {
   status?: number
   data?: {
@@ -24,6 +31,16 @@ type ApiLoginResponse = {
     email?: string
   }
   message?: string
+}
+
+type ApiForgetPasswordResponse = {
+  message?: string
+  data?: {
+    id?: string | number
+    userName?: string
+    email?: string
+    createdAt?: string
+  }
 }
 
 const STORAGE_KEYS = {
@@ -74,6 +91,22 @@ class AuthService {
     const user: AuthUser = { id, name, email: userEmail, role }
     saveAuthStorage(token, user)
     return { token, user }
+  }
+
+  async forgetPassword({
+    email,
+    newPassword,
+    confirmPassword,
+    role,
+  }: ForgetPasswordInput) {
+    const endpoint =
+      role === "admin" ? "/auth/forget-password" : "/consultant/forget-password"
+
+    return apiService.post<ApiForgetPasswordResponse>(endpoint, {
+      email,
+      newPassword,
+      confirmPassword,
+    })
   }
 
   logout() {
