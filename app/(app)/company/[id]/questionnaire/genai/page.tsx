@@ -361,6 +361,12 @@ export default function QuestionnairePage({
     loadCurrentDimension();
   }, [currentMeta, token, scoresByDimension]);
 
+  // Reset scroll position to the top whenever we move to a new dimension
+  // (e.g. after clicking "Next"), instead of keeping the previous scroll offset.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, [currentDimIndex]);
+
   const handleAnswer = useCallback((questionId: string, value: AnswerValue) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
     setSavedPulse(true);
@@ -822,9 +828,6 @@ function QuestionCard({
               </TooltipProvider>
             )}
           </div>
-          <span className='inline-block mt-2 px-2 py-1 text-xs font-medium bg-secondary text-secondary-foreground rounded-md'>
-            {type}
-          </span>
         </div>
       </div>
 

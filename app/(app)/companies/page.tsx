@@ -123,16 +123,16 @@ function CompanyCard({
       return (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <Link
-            href={`/company/${company.id}`}
+            href={`/company/${company.id}/review-answers`}
             className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition-colors text-center"
           >
-            Details
+            Review Answers
           </Link>
           <Link
-            href={`/company/${company.id}/review-answers`}
+            href={`/company/${company.id}`}
             className="px-3 py-2 bg-secondary text-secondary-foreground rounded-lg text-xs font-medium hover:bg-secondary/80 transition-colors text-center"
           >
-            Review Answers
+            Details
           </Link>
         </div>
       )
