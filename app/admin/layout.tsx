@@ -3,7 +3,8 @@
 import React from "react"
 import { useEffect } from "react"
 import Image from "next/image"
-import { LogOut, Moon, Sun } from "lucide-react"
+import Link from "next/link"
+import { LogOut, Moon, Settings, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/hooks/useAuth"
@@ -75,7 +76,7 @@ function AdminHeader() {
                   <span className="text-sm font-medium text-foreground">
                     {displayName}
                   </span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                     {roleLabel}
                   </span>
                 </span>
@@ -83,9 +84,9 @@ function AdminHeader() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuItem disabled>
-                <div className="flex min-w-0 flex-col">
+                <div className="flex min-w-0 flex-col gap-1">
                   <span className="font-semibold">{displayName}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="inline-flex w-fit items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
                     {roleLabel}
                   </span>
                   <span
@@ -97,12 +98,19 @@ function AdminHeader() {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/admin/settings" className="cursor-pointer">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => {
                   logout()
                   router.replace("/login")
                 }}
-                className="text-destructive focus:text-destructive"
+                className="cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive dark:focus:bg-destructive/20"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
