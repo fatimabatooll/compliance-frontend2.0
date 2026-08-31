@@ -45,7 +45,6 @@ const MATURITY_SCORE_DISPLAY = {
 };
 
 export default function DimensionMaturityRadar({ data }) {
-  console.log("dimension",data)
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const maturityColors = isDark ? MATURITY_COLORS_DARK : MATURITY_COLORS_LIGHT;
@@ -64,7 +63,7 @@ export default function DimensionMaturityRadar({ data }) {
   }));
 
   return (
-    <div className='h-[560px] w-full'>
+    <div className='h-full lg:h-[560px] w-full overflow-visible'>
       <div className='flex h-full flex-col gap-4 lg:flex-row'>
         <div className='min-h-[420px] flex-1'>
           <ResponsiveContainer>
@@ -142,7 +141,7 @@ export default function DimensionMaturityRadar({ data }) {
           </ResponsiveContainer>
         </div>
 
-        <div className='shrink-0 rounded-md  p-3 lg:w-52'>
+        <div className='shrink-0 rounded-md p-3 lg:w-52 lg:overflow-y-visible'>
           <p className='mb-2 text-sm font-medium'>Maturity Legend</p>
           <div className='space-y-2'>
             {MATURITY_LEVELS.map((level) => (

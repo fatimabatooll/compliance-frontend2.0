@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 function AppHeader() {
-  const { theme, setTheme } = useTheme();
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const router = useRouter();
   const { user, logout } = useAuth();
 
@@ -31,16 +31,21 @@ function AppHeader() {
 
   return (
     <header className='fixed top-0 left-0 right-0 z-50 bg-[#f6f7f9] dark:bg-[#101318]'>
-      <div className='glass-strong border-b border-border/50 mx-4 mt-3 rounded-2xl px-6 py-3 shadow-lg flex items-center justify-between'>
-        {/* Left - Logo */}
-        <div className='flex items-center gap-3'>
+      <div className='glass-strong border-b border-border/50 mx-2 sm:mx-4 mt-3 rounded-2xl px-3 sm:px-6 py-3 shadow-lg flex flex-wrap items-center justify-between gap-y-2'>
+        {/* Left - Logo (click to return to dashboard) */}
+        <Link href='/companies' className='flex items-center gap-3 shrink-0'>
           <Image
-            src='/logo-sidat-hyder.png'
+            src={
+              resolvedTheme === "dark"
+                ? "/logo-dark-mode2.jpg"
+                : "/logo-sidat-hyder.png"
+            }
             alt='SIDAT HYDER'
             width={100}
             height={30}
+            className='h-auto w-20 sm:w-[100px]'
           />
-        </div>
+        </Link>
 
         {/* Center - Title */}
         {/* <div className="flex-1 flex items-center justify-center">
@@ -50,7 +55,7 @@ function AppHeader() {
         </div> */}
 
         {/* Right Actions */}
-        <div className='flex items-center justify-end gap-3'>
+        <div className='flex items-center justify-end gap-2 sm:gap-3'>
           {/* Theme Toggle */}
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

@@ -546,7 +546,7 @@ export default function QuestionnairePage({
     <div className='min-h-screen bg-background flex flex-col'>
       <div className='fixed top-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/50 pt-24'>
         <div className='max-w-7xl mx-auto px-4 py-4'>
-          <div className='flex items-center justify-between'>
+          <div className='flex flex-wrap items-center justify-between gap-2'>
             <div>
               <h2 className='text-lg font-semibold text-foreground capitalize'>
                 {companyName}
@@ -686,8 +686,8 @@ export default function QuestionnairePage({
                     ))}
                   </div>
 
-                  <div className='glass rounded-2xl p-6 sticky bottom-0'>
-                    <div className='flex items-center justify-between mb-4'>
+                  <div className='glass rounded-2xl p-4 sm:p-6 sticky bottom-0'>
+                    <div className='flex flex-wrap items-center justify-between gap-2 mb-4'>
                       <div className='flex items-center gap-2'>
                         {/* {savedPulse && (
                           <div className='flex items-center gap-2 text-accent animate-pulse'>
@@ -706,7 +706,7 @@ export default function QuestionnairePage({
                       </Link>
                     </div>
 
-                    <div className='flex items-center gap-3'>
+                    <div className='flex flex-wrap items-center gap-3'>
                       {currentDimIndex > 0 && (
                         <button
                           onClick={() => setCurrentDimIndex((prev) => prev - 1)}

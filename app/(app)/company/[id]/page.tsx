@@ -148,7 +148,7 @@ export default function CompanyDetailsPage({
           <ArrowLeft className='h-3.5 w-3.5' />
           Back to companies
         </Link>
-        <div className='flex items-start justify-between gap-4'>
+        <div className='flex flex-col sm:flex-row sm:items-start justify-between gap-4'>
           <div>
             <h1 className='text-3xl font-bold text-foreground mb-2 capitalize'>
               {company.name}
@@ -167,7 +167,7 @@ export default function CompanyDetailsPage({
           {(company.status === "pending" ||
             company.status === "in-progress" ||
             company.status === "evaluated") && (
-            <div className='flex flex-wrap items-center gap-3'>
+            <div className='flex flex-wrap items-center gap-3 sm:justify-end'>
               {company.status === "evaluated" && (
                 <Link
                   href={`/company/${company.id}/questionnaire/genai`}

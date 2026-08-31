@@ -58,11 +58,45 @@ const passwordRules = [
     errorMessage: "Password must include at least one uppercase letter.",
     isValid: (password: string) => /[A-Z]/.test(password),
   },
+  {
+    label: "At least one lowercase letter",
+    errorMessage: "Password must include at least one lowercase letter.",
+    isValid: (password: string) => /[a-z]/.test(password),
+  },
+  {
+    label: "At least one number",
+    errorMessage: "Password must include at least one number.",
+    isValid: (password: string) => /[0-9]/.test(password),
+  },
+  {
+    label: "At least one special character",
+    errorMessage: "Password must include at least one special character.",
+    isValid: (password: string) => /[^A-Za-z0-9]/.test(password),
+  },
 ];
 
 const getPasswordError = (password: string) => {
   const failedRule = passwordRules.find((rule) => !rule.isValid(password));
   return failedRule?.errorMessage ?? "";
+};
+
+const namePattern = /^[A-Za-z][A-Za-z\s.'-]*$/;
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const getNameError = (name: string) => {
+  if (!name.trim()) return "Name is required.";
+  if (!namePattern.test(name.trim())) {
+    return "Name should only contain letters, spaces, and punctuation (no numbers).";
+  }
+  return "";
+};
+
+const getEmailError = (email: string) => {
+  if (!email.trim()) return "Email is required.";
+  if (!emailPattern.test(email.trim())) {
+    return "Enter a valid email address (e.g. name@company.com).";
+  }
+  return "";
 };
 
 export default function ConsultantsPage() {
@@ -75,6 +109,9 @@ export default function ConsultantsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<AddConsultantForm>(initialForm);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<keyof AddConsultantForm, string>>
+  >({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchConsultants = useCallback(async () => {
@@ -157,10 +194,7 @@ export default function ConsultantsPage() {
   );
 
   const selectedCompany = useMemo(
-    () =>
-      evaluatedCompanyOptions.find(
-        (item) => item.id === selectedCompanyId,
-      ),
+    () => evaluatedCompanyOptions.find((item) => item.id === selectedCompanyId),
     [evaluatedCompanyOptions, selectedCompanyId],
   );
 
@@ -202,10 +236,7 @@ export default function ConsultantsPage() {
       companyName: selected.name,
       consultantName: selected.consultantName,
     }));
-  }, [
-    evaluatedCompanyOptions,
-    selectedCompanyId,
-  ]);
+  }, [evaluatedCompanyOptions, selectedCompanyId]);
 
   const pieChartData = useMemo(
     () =>
@@ -219,6 +250,7 @@ export default function ConsultantsPage() {
   const resetForm = () => {
     setFormData(initialForm);
     setFormError("");
+    setFieldErrors({});
   };
 
   const handleOpenModal = () => {
@@ -235,23 +267,35 @@ export default function ConsultantsPage() {
     event.preventDefault();
     if (!token) return;
 
-    if (!formData.userName || !formData.email || !formData.password) {
-      setFormError("Please fill in all required fields.");
-      return;
-    }
+    const nextFieldErrors: Partial<Record<keyof AddConsultantForm, string>> =
+      {};
+
+    const nameError = getNameError(formData.userName);
+    if (nameError) nextFieldErrors.userName = nameError;
+
+    const emailError = getEmailError(formData.email);
+    if (emailError) nextFieldErrors.email = emailError;
+
     const passwordError = getPasswordError(formData.password);
-    if (passwordError) {
-      setFormError(passwordError);
-      return;
+    if (passwordError) nextFieldErrors.password = passwordError;
+
+    if (!formData.confirmPassword) {
+      nextFieldErrors.confirmPassword = "Please confirm the password.";
+    } else if (formData.password !== formData.confirmPassword) {
+      nextFieldErrors.confirmPassword =
+        "Password and confirm password do not match.";
     }
-    if (formData.password !== formData.confirmPassword) {
-      setFormError("Password and confirm password do not match.");
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      setFormError("");
       return;
     }
 
     try {
       setIsSubmitting(true);
       setFormError("");
+      setFieldErrors({});
       await consultantService.createConsultant(formData, token);
       await fetchConsultants();
       handleCloseModal();
@@ -540,7 +584,8 @@ export default function ConsultantsPage() {
             <DialogTitle className='text-xl'>Add New Consultant</DialogTitle>
             <DialogDescription>
               Enter consultant credentials and contact details to provision
-              access.
+              access. Fields marked with{" "}
+              <span className='text-destructive'>*</span> are required.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -549,46 +594,79 @@ export default function ConsultantsPage() {
             autoComplete='off'
           >
             <div className='space-y-2'>
-              <Label htmlFor='userName'>Name</Label>
+              <Label htmlFor='userName'>
+                Name <span className='text-destructive'>*</span>
+              </Label>
               <Input
                 id='userName'
                 name='consultantUserName'
                 autoComplete='off'
                 value={formData.userName}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, userName: e.target.value }))
-                }
+                onChange={(e) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    userName: e.target.value,
+                  }));
+                  setFieldErrors((prev) => ({ ...prev, userName: undefined }));
+                }}
                 placeholder='Consultant name'
+                aria-invalid={Boolean(fieldErrors.userName)}
+                className={
+                  fieldErrors.userName ? "border-destructive" : undefined
+                }
               />
+              {fieldErrors.userName && (
+                <p className='text-xs text-destructive'>
+                  {fieldErrors.userName}
+                </p>
+              )}
             </div>
 
             <div className='space-y-2'>
-              <Label htmlFor='email'>Email</Label>
+              <Label htmlFor='email'>
+                Email <span className='text-destructive'>*</span>
+              </Label>
               <Input
                 id='email'
                 name='consultantEmail'
                 type='email'
                 autoComplete='off'
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, email: e.target.value }))
-                }
+                onChange={(e) => {
+                  setFormData((prev) => ({ ...prev, email: e.target.value }));
+                  setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                }}
                 placeholder='consultant@company.com'
+                aria-invalid={Boolean(fieldErrors.email)}
+                className={fieldErrors.email ? "border-destructive" : undefined}
               />
+              {fieldErrors.email && (
+                <p className='text-xs text-destructive'>{fieldErrors.email}</p>
+              )}
             </div>
 
             <div className='space-y-2'>
-              <Label htmlFor='password'>Password</Label>
+              <Label htmlFor='password'>
+                Password <span className='text-destructive'>*</span>
+              </Label>
               <Input
                 id='password'
                 name='consultantNewPassword'
                 type='password'
                 autoComplete='new-password'
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, password: e.target.value }))
-                }
+                onChange={(e) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    password: e.target.value,
+                  }));
+                  setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                }}
                 placeholder='Create a password'
+                aria-invalid={Boolean(fieldErrors.password)}
+                className={
+                  fieldErrors.password ? "border-destructive" : undefined
+                }
               />
               <div className='space-y-1 text-xs'>
                 {passwordRules.map((rule) => {
@@ -606,24 +684,44 @@ export default function ConsultantsPage() {
                   );
                 })}
               </div>
+              {fieldErrors.password && (
+                <p className='text-xs text-destructive'>
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
 
             <div className='space-y-2'>
-              <Label htmlFor='confirmPassword'>Confirm Password</Label>
+              <Label htmlFor='confirmPassword'>
+                Confirm Password <span className='text-destructive'>*</span>
+              </Label>
               <Input
                 id='confirmPassword'
                 name='consultantConfirmPassword'
                 type='password'
                 autoComplete='new-password'
                 value={formData.confirmPassword}
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData((prev) => ({
                     ...prev,
                     confirmPassword: e.target.value,
-                  }))
-                }
+                  }));
+                  setFieldErrors((prev) => ({
+                    ...prev,
+                    confirmPassword: undefined,
+                  }));
+                }}
                 placeholder='Retype password'
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
+                className={
+                  fieldErrors.confirmPassword ? "border-destructive" : undefined
+                }
               />
+              {fieldErrors.confirmPassword && (
+                <p className='text-xs text-destructive'>
+                  {fieldErrors.confirmPassword}
+                </p>
+              )}
             </div>
 
             {formError && (
