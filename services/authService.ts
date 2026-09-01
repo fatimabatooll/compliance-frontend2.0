@@ -148,7 +148,7 @@ class AuthService {
     token?: string | null,
   ) {
     const endpoint = role === "admin" ? `/auth/${id}` : `/consultant/${id}`;
-    const response = await apiService.patch<ApiUpdateProfileResponse>(
+    const response = await apiService.put<ApiUpdateProfileResponse>(
       endpoint,
       { userName: name, email },
       token,
