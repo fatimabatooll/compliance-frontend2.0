@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload } from "lucide-react";
 import {
   Dialog,
@@ -18,10 +18,25 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-interface AddCompanyModalProps {
+export type CompanyFormMode = "create" | "edit";
+
+export type CompanyFormInitialData = {
+  companyName: string;
+  industry: string;
+  strength: string;
+  contactPerson: string;
+  designation: string;
+  email: string;
+  contactNumber: string; // full number, e.g. "+92 3001234567"
+  companyImage?: string;
+};
+
+interface CompanyFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAddCompany: (company: any) => Promise<void> | void;
+  onSubmit: (company: any) => Promise<void> | void;
+  mode?: CompanyFormMode;
+  initialData?: CompanyFormInitialData;
 }
 
 const industryOptions = [
@@ -45,6 +60,8 @@ const strengthOptions = [
   "200-500",
   "500 & more",
 ];
+
+const countryCodeOptions = ["+92", "+1", "+44", "+91", "+86"];
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -76,15 +93,65 @@ const initialFormData: FormData = {
   countryCode: "+92",
 };
 
+// Splits a stored "+92 3001234567" style number back into a known country
+// code + the remaining digits, so the edit form can preselect it.
+const splitContactNumber = (value: string) => {
+  const trimmed = value.trim();
+  const match = countryCodeOptions.find(
+    (code) => trimmed === code || trimmed.startsWith(`${code} `),
+  );
+  if (match) {
+    return {
+      countryCode: match,
+      contactNumber: trimmed.slice(match.length).trim(),
+    };
+  }
+  return { countryCode: "+92", contactNumber: trimmed };
+};
+
+const toFormData = (data: CompanyFormInitialData): FormData => {
+  const { countryCode, contactNumber } = splitContactNumber(
+    data.contactNumber || "",
+  );
+  return {
+    companyName: data.companyName || "",
+    industry: data.industry || "",
+    strength: data.strength || "",
+    image: null,
+    contactPerson: data.contactPerson || "",
+    designation: data.designation || "",
+    email: data.email || "",
+    contactNumber,
+    countryCode,
+  };
+};
+
 export function AddCompanyModal({
   open,
   onOpenChange,
-  onAddCompany,
-}: AddCompanyModalProps) {
-  const [formData, setFormData] = useState<FormData>(initialFormData);
+  onSubmit,
+  mode = "create",
+  initialData,
+}: CompanyFormModalProps) {
+  const [formData, setFormData] = useState<FormData>(
+    initialData ? toFormData(initialData) : initialFormData,
+  );
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEdit = mode === "edit";
+
+  // Re-sync the form whenever the modal is (re)opened for a different
+  // company, so stale values from a previous edit don't leak in.
+  useEffect(() => {
+    if (open) {
+      setFormData(initialData ? toFormData(initialData) : initialFormData);
+      setErrors({});
+      setSubmitError("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialData?.companyName]);
 
   const clearFieldError = (name: keyof FormErrors) => {
     setErrors((prev) => {
@@ -176,16 +243,16 @@ export function AddCompanyModal({
 
     try {
       setIsSubmitting(true);
-      let companyImage = "";
+      let companyImage = initialData?.companyImage;
       if (formData.image) {
         companyImage = await fileToBase64(formData.image);
       }
 
-      await onAddCompany({
+      await onSubmit({
         companyName: formData.companyName,
         industry: formData.industry,
         strength: formData.strength,
-        companyImage,
+        ...(companyImage ? { companyImage } : {}),
         personName: formData.contactPerson,
         designation: formData.designation,
         email: formData.email,
@@ -199,7 +266,7 @@ export function AddCompanyModal({
       const message =
         typeof error === "object" && error && "message" in error
           ? String((error as { message: string }).message)
-          : "Failed to add company";
+          : `Failed to ${isEdit ? "update" : "add"} company`;
       setSubmitError(message);
     } finally {
       setIsSubmitting(false);
@@ -207,7 +274,7 @@ export function AddCompanyModal({
   };
 
   const handleCancel = () => {
-    setFormData(initialFormData);
+    setFormData(initialData ? toFormData(initialData) : initialFormData);
     setErrors({});
     setSubmitError("");
     onOpenChange(false);
@@ -227,12 +294,14 @@ export function AddCompanyModal({
       <DialogContent className='max-w-md max-h-[90vh] overflow-y-auto'>
         <DialogHeader>
           <DialogTitle className='text-xl font-semibold'>
-            Add New Company
+            {isEdit ? "Edit Company Details" : "Add New Company"}
           </DialogTitle>
           <DialogDescription>
-            Provide company and contact details to create a new assessment
-            profile. Fields marked with{" "}
-            <span className='text-destructive'>*</span> are required.
+            {isEdit
+              ? "Update the company and contact details below."
+              : "Provide company and contact details to create a new assessment profile."}{" "}
+            Fields marked with <span className='text-destructive'>*</span> are
+            required.
           </DialogDescription>
         </DialogHeader>
 
@@ -332,12 +401,21 @@ export function AddCompanyModal({
               />
               <div className='flex items-center gap-2 px-4 py-2 rounded-lg border border-input hover:bg-secondary transition-colors'>
                 <Upload className='h-4 w-4' />
-                <span className='text-sm font-medium'>Upload</span>
+                <span className='text-sm font-medium'>
+                  {isEdit && initialData?.companyImage
+                    ? "Replace image"
+                    : "Upload"}
+                </span>
               </div>
             </label>
             {formData.image && (
               <p className='text-xs text-muted-foreground mt-1'>
                 {formData.image.name}
+              </p>
+            )}
+            {!formData.image && isEdit && initialData?.companyImage && (
+              <p className='text-xs text-muted-foreground mt-1'>
+                Current image will be kept unless you upload a new one.
               </p>
             )}
           </div>
@@ -421,11 +499,11 @@ export function AddCompanyModal({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value='+92'>+92</SelectItem>
-                  <SelectItem value='+1'>+1</SelectItem>
-                  <SelectItem value='+44'>+44</SelectItem>
-                  <SelectItem value='+91'>+91</SelectItem>
-                  <SelectItem value='+86'>+86</SelectItem>
+                  {countryCodeOptions.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <input
@@ -461,7 +539,13 @@ export function AddCompanyModal({
               disabled={isSubmitting}
               className='flex-1 px-6 py-2 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60'
             >
-              {isSubmitting ? "Adding..." : "Add"}
+              {isSubmitting
+                ? isEdit
+                  ? "Saving..."
+                  : "Adding..."
+                : isEdit
+                  ? "Save Changes"
+                  : "Add"}
             </button>
             <button
               type='button'

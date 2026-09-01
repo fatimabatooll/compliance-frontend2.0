@@ -2,8 +2,14 @@
 
 import { use, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ArrowLeft, ClipboardCheck, FilePenLine } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowLeft,
+  ClipboardCheck,
+  FilePenLine,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { getMaturityColor, getMaturityLabel } from "@/lib/ui-helpers";
 import { cn } from "@/lib/utils";
 import companyService, { type CompanyDetails } from "@/services/companyService";
@@ -11,6 +17,17 @@ import questionnaireService from "@/services/questionnaireService";
 import { useAuth } from "@/hooks/useAuth";
 import DimensionMaturityRadar from "@/components/charts/DimensionMaturityRadar";
 import CircularProgress from "@/components/charts/CircularProgress";
+import { AddCompanyModal } from "@/components/add-company-modal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type DomainChartRow = {
   domain: string;
@@ -30,6 +47,7 @@ export default function CompanyDetailsPage({
 }) {
   const { id } = use(params);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const readinessIndexType = searchParams.get("index") || "genai";
   const { token } = useAuth();
 
@@ -40,6 +58,10 @@ export default function CompanyDetailsPage({
   );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (!token) return;
@@ -121,6 +143,49 @@ export default function CompanyDetailsPage({
     return getMaturityLabel(company.readinessScore);
   }, [company]);
 
+  const handleUpdateCompany = async (payload: any) => {
+    if (!token || !company) return;
+    const response = await companyService.updateCompany(
+      company.id,
+      payload,
+      token,
+    );
+    setCompany((prev) =>
+      prev
+        ? {
+            ...prev,
+            name: payload.companyName ?? prev.name,
+            industry: payload.industry ?? prev.industry,
+            strength: payload.strength ?? prev.strength,
+            personName: payload.personName ?? prev.personName,
+            designation: payload.designation ?? prev.designation,
+            email: payload.email ?? prev.email,
+            contactNumber: payload.contactNumber ?? prev.contactNumber,
+            companyImage: payload.companyImage ?? prev.companyImage,
+          }
+        : prev,
+    );
+    void response;
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!token || !company) return;
+    try {
+      setIsDeleting(true);
+      setDeleteError("");
+      await companyService.deleteCompany(company.id, token);
+      router.push("/companies");
+      router.refresh();
+    } catch (error: unknown) {
+      const message =
+        typeof error === "object" && error && "message" in error
+          ? String((error as { message: string }).message)
+          : "Failed to delete company.";
+      setDeleteError(message);
+      setIsDeleting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className='rounded-2xl border border-border/50 p-8 text-center text-sm text-muted-foreground'>
@@ -158,39 +223,50 @@ export default function CompanyDetailsPage({
               {company.industry} • {company.strength}
             </p>
 
-            {/* ✅ ADD THIS */}
             <p className='text-sm text-muted-foreground mt-1'>
               {company.personName} • {company.designation}
             </p>
           </div>
 
-          {(company.status === "pending" ||
-            company.status === "in-progress" ||
-            company.status === "evaluated") && (
-            <div className='flex flex-wrap items-center gap-3 sm:justify-end'>
-              {company.status === "evaluated" && (
-                <Link
-                  href={`/company/${company.id}/questionnaire/genai`}
-                  className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
-                >
-                  <FilePenLine className='h-4 w-4' />
-                  Update Answers
-                </Link>
-              )}
-              {(company.status === "pending" ||
-                company.status === "in-progress") && (
-                <Link
-                  href={`/company/${company.id}/questionnaire/genai`}
-                  className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
-                >
-                  <ClipboardCheck className='h-4 w-4' />
-                  {company.status === "pending"
-                    ? "Start Assessment"
-                    : "Continue Assessment"}
-                </Link>
-              )}
-            </div>
-          )}
+          <div className='flex flex-wrap items-center gap-3 sm:justify-end'>
+            {company.status === "evaluated" && (
+              <Link
+                href={`/company/${company.id}/questionnaire/genai`}
+                className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-semibold hover:bg-accent/90 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
+              >
+                <FilePenLine className='h-4 w-4' />
+                Update Answers
+              </Link>
+            )}
+            {(company.status === "pending" ||
+              company.status === "in-progress") && (
+              <Link
+                href={`/company/${company.id}/questionnaire/genai`}
+                className='inline-flex items-center gap-2 px-5 py-2.5 rounded-xl gradient-primary text-primary-foreground text-sm font-semibold hover:shadow-lg transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]'
+              >
+                <ClipboardCheck className='h-4 w-4' />
+                {company.status === "pending"
+                  ? "Start Assessment"
+                  : "Continue Assessment"}
+              </Link>
+            )}
+            <button
+              type='button'
+              onClick={() => setIsEditOpen(true)}
+              className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-secondary text-secondary-foreground text-sm font-medium hover:bg-secondary/80 transition-colors'
+            >
+              <Pencil className='h-4 w-4' />
+              Edit
+            </button>
+            <button
+              type='button'
+              onClick={() => setIsDeleteOpen(true)}
+              className='inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-sm font-medium hover:bg-destructive/20 transition-colors'
+            >
+              <Trash2 className='h-4 w-4' />
+              Delete
+            </button>
+          </div>
         </div>
       </div>
 
@@ -260,6 +336,53 @@ export default function CompanyDetailsPage({
           </div>
         </>
       )}
+
+      <AddCompanyModal
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        mode='edit'
+        initialData={{
+          companyName: company.name,
+          industry: company.industry,
+          strength: company.strength || "",
+          contactPerson: company.personName || "",
+          designation: company.designation || "",
+          email: company.email || "",
+          contactNumber: company.contactNumber || "",
+          companyImage: company.companyImage,
+        }}
+        onSubmit={handleUpdateCompany}
+      />
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this company?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove <strong>{company.name}</strong> and
+              its assessment data. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && (
+            <p className='rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive'>
+              {deleteError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteCompany();
+              }}
+              disabled={isDeleting}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              {isDeleting ? "Deleting..." : "Delete Company"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -329,7 +329,7 @@ export default function CompaniesPage() {
       )}
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative flex-1 max-w-sm self-center">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
@@ -340,7 +340,7 @@ export default function CompaniesPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center lg:gap-2 flex-wrap justify-center gap-4">
           {statusFilters.map((filter) => (
             <button
               key={filter}
