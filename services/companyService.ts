@@ -18,7 +18,6 @@ export type ConsultantCompany = {
 export type CompanyDetails = {
   id: string;
   name: string;
-  email:string;
   industry: string;
   status: CompanyStatus;
   readinessScore: number;
@@ -27,7 +26,8 @@ export type CompanyDetails = {
   size?: string;
   personName?: string;
   designation?: string;
-  contactNumber:string
+  email?: string;
+  contactNumber?: string;
 };
 
 export type CreateCompanyInput = {
@@ -41,6 +41,10 @@ export type CreateCompanyInput = {
   contactNumber: string;
   consultantId: string;
 };
+
+export type UpdateCompanyInput = Partial<
+  Omit<CreateCompanyInput, "consultantId">
+>;
 
 type ApiScore = {
   index?: string;
@@ -70,6 +74,8 @@ type ApiCompanyPayload = {
   strength?: string;
   size?: string;
   companySize?: string;
+  email?: string;
+  contactNumber?: string;
   readinessScore?: number;
   overAllScore?: ApiScore[];
   isEvaluated?: boolean;
@@ -237,6 +243,8 @@ const toCompanyDetails = (
     strength: raw.strength,
     personName: raw.personName,
     designation: raw.designation,
+    email: raw.email,
+    contactNumber: raw.contactNumber,
     size: raw.size || raw.companySize,
   };
 };
@@ -263,6 +271,18 @@ const extractPayload = <T>(
 class CompanyService {
   async createCompany(data: CreateCompanyInput, token?: string | null) {
     return apiService.post("/company/create", data, token);
+  }
+
+  async updateCompany(
+    companyId: string,
+    data: UpdateCompanyInput,
+    token?: string | null,
+  ) {
+    return apiService.put(`/company/${companyId}`, data, token);
+  }
+
+  async deleteCompany(companyId: string, token?: string | null) {
+    return apiService.delete(`/company/${companyId}`, token);
   }
 
   async getCompaniesByConsultantId(
@@ -296,18 +316,6 @@ class CompanyService {
     const payload = extractPayload<ApiCompanyPayload>(response);
     if (!payload) return null;
     return toCompanyDetails(payload, readinessIndexType);
-  }
-
-  async updateCompany(
-    companyId: string,
-    data: UpdateCompanyInput,
-    token?: string | null,
-  ) {
-    return apiService.put(`/company/${companyId}`, data, token);
-  }
-
-  async deleteCompany(companyId: string, token?: string | null) {
-    return apiService.delete(`/company/${companyId}`, token);
   }
 }
 
