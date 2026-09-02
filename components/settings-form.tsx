@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, type FormEvent } from "react"
-import { Eye, EyeOff, Loader2, CheckCircle2 } from "lucide-react"
+import { Eye, EyeOff, Loader2, CheckCircle2, Check, X } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import authService from "@/services/authService"
+import { passwordRequirements, getPasswordStrengthError } from "@/lib/password"
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -73,7 +74,14 @@ export function SettingsForm() {
     setPasswordSuccess("")
 
     const errors: PasswordErrors = {}
-    if (!newPassword) errors.newPassword = "New password is required."
+    if (!newPassword) {
+      errors.newPassword = "New password is required."
+    } else {
+      const strengthError = getPasswordStrengthError(newPassword)
+      if (strengthError) {
+        errors.newPassword = strengthError
+      }
+    }
     if (!confirmPassword) {
       errors.confirmPassword = "Confirm your new password."
     } else if (newPassword && confirmPassword !== newPassword) {
@@ -226,6 +234,26 @@ export function SettingsForm() {
                 {passwordErrors.newPassword}
               </p>
             )}
+            <ul className="mt-3 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {passwordRequirements.map((rule) => {
+                const met = rule.test(newPassword)
+                return (
+                  <li
+                    key={rule.label}
+                    className={`flex items-center gap-1.5 text-xs transition-colors ${
+                      met ? "text-primary" : "text-muted-foreground"
+                    }`}
+                  >
+                    {met ? (
+                      <Check className="h-3.5 w-3.5 shrink-0" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 shrink-0" />
+                    )}
+                    {rule.label}
+                  </li>
+                )
+              })}
+            </ul>
           </div>
 
           <div>

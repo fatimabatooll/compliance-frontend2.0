@@ -64,6 +64,11 @@ const strengthOptions = [
 const countryCodeOptions = ["+92", "+1", "+44", "+91", "+86"];
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const digitPattern = /[0-9]/;
+// Company name, contact person, and designation are name-like fields —
+// digits are stripped as the user types rather than allowed and rejected
+// later, so the field itself never lets a number through.
+const noDigitFields = new Set(["companyName", "contactPerson", "designation"]);
 
 type FormData = {
   companyName: string;
@@ -154,7 +159,7 @@ export function AddCompanyModal({
   }, [open, initialData?.companyName]);
 
   const clearFieldError = (name: keyof FormErrors) => {
-    setErrors((prev) => {
+    setErrors((prev: any) => {
       if (!prev[name]) return prev;
       const next = { ...prev };
       delete next[name];
@@ -166,9 +171,12 @@ export function AddCompanyModal({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
+    const nextValue = noDigitFields.has(name)
+      ? value.replace(/[0-9]/g, "")
+      : value;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: nextValue,
     }));
     clearFieldError(name as keyof FormErrors);
   };
@@ -204,6 +212,8 @@ export function AddCompanyModal({
 
     if (!formData.companyName.trim()) {
       nextErrors.companyName = "Company name is required.";
+    } else if (digitPattern.test(formData.companyName)) {
+      nextErrors.companyName = "Company name cannot contain numbers.";
     }
     if (!formData.industry) {
       nextErrors.industry = "Please select an industry.";
@@ -213,9 +223,13 @@ export function AddCompanyModal({
     }
     if (!formData.contactPerson.trim()) {
       nextErrors.contactPerson = "Contact person is required.";
+    } else if (digitPattern.test(formData.contactPerson)) {
+      nextErrors.contactPerson = "Contact person cannot contain numbers.";
     }
     if (!formData.designation.trim()) {
       nextErrors.designation = "Designation is required.";
+    } else if (digitPattern.test(formData.designation)) {
+      nextErrors.designation = "Designation cannot contain numbers.";
     }
     if (!formData.email.trim()) {
       nextErrors.email = "Email is required.";
