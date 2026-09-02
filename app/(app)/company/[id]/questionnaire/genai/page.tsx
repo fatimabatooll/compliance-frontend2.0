@@ -793,9 +793,16 @@ function QuestionCard({
 }: QuestionCardProps) {
   const type = getQuestionType(question);
   const questionDescription = question.description?.trim();
+  // Checkbox options are shown highest-score first (5 → 0), since that's
+  // the order respondents expect to scan a maturity-style checklist in.
+  const sortedCheckboxes = question.checkboxes
+    ? [...question.checkboxes].sort(
+        (a, b) => (b.marks ?? -Infinity) - (a.marks ?? -Infinity),
+      )
+    : undefined;
   const options =
     question.options?.map((o) => o.trim()) ||
-    question.checkboxes?.map((item) => item.option.trim()) ||
+    sortedCheckboxes?.map((item) => item.option.trim()) ||
     (type === "binary" ? ["Yes", "No"] : []);
 
   return (
