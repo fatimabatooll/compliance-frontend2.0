@@ -390,8 +390,10 @@ export default function QuestionnairePage({
     if (type === "checkbox") {
       if (Array.isArray(value) && question.checkboxes?.length) {
         return value.reduce((sum, selected) => {
+          const normalizedSelected =
+            typeof selected === "string" ? selected.trim() : selected;
           const match = question.checkboxes?.find(
-            (item) => item.option === selected,
+            (item) => item.option.trim() === normalizedSelected,
           );
           return sum + Number(match?.marks || 0);
         }, 0);
