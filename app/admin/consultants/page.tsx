@@ -312,9 +312,9 @@ export default function ConsultantsPage() {
 
   return (
     <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+      <div className='flex items-center justify-between flex-wrap gap-4'>
         <div>
-          <h1 className='text-3xl font-bold text-foreground my-4'>
+          <h1 className='text-3xl font-bold text-foreground my-4 '>
             Consultants
           </h1>
           <p className='text-sm text-muted-foreground'>
@@ -323,7 +323,7 @@ export default function ConsultantsPage() {
         </div>
         <button
           onClick={handleOpenModal}
-          className='flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg font-medium hover:bg-accent/90 transition-colors'
+          className='flex items-center self-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg font-medium hover:bg-accent/90 transition-colors'
         >
           <Plus className='h-4 w-4' />
           Add Consultant

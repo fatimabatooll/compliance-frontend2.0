@@ -63,10 +63,10 @@ export default function DimensionMaturityRadar({ data }) {
   }));
 
   return (
-    <div className='h-full lg:h-[560px] w-full overflow-visible'>
-      <div className='flex h-full flex-col gap-4 lg:flex-row'>
-        <div className='min-h-[420px] flex-1'>
-          <ResponsiveContainer>
+    <div className='h-auto lg:h-[560px] w-full overflow-visible'>
+      <div className='flex h-auto lg:h-full flex-col gap-4 lg:flex-row'>
+        <div className='h-[420px] lg:h-full lg:flex-1'>
+          <ResponsiveContainer width='100%' height='100%'>
             <RadarChart data={radarData}>
               <PolarGrid />
 

@@ -311,11 +311,11 @@ export default function CompanyDetailsPage({
         <>
           <div className='flex flex-col gap-6'>
             <div className='glass rounded-2xl p-6'>
-              <h2 className='text-lg font-semibold text-foreground mb-6'>
+              <h2 className='text-lg font-semibold text-foreground mb-6 text-center sm:text-left'>
                 Domain Maturity Overview
               </h2>
 
-              <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8'>
+              <div className='grid grid-cols-1 min-[287px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8'>
                 {domainScores.map((domain) => (
                   <CircularProgress
                     key={domain.domain}
@@ -327,7 +327,7 @@ export default function CompanyDetailsPage({
             </div>
 
             <div className='glass rounded-2xl p-6'>
-              <h2 className='text-lg font-semibold text-foreground mb-6'>
+              <h2 className='text-lg font-semibold text-foreground sm:mb-6 text-center sm:text-left'>
                 Dimension Maturity Analysis
               </h2>
 

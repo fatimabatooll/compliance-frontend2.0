@@ -808,14 +808,14 @@ function QuestionCard({
     (type === "binary" ? ["Yes", "No"] : []);
 
   return (
-    <div className='glass rounded-2xl p-6 transition-all duration-300'>
-      <div className='flex items-start gap-4 mb-4'>
-        <div className='h-8 w-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0 text-primary font-semibold text-sm'>
+    <div className='glass rounded-2xl p-4 sm:p-6 transition-all duration-300'>
+      <div className='flex items-start gap-3 sm:gap-4 mb-4'>
+        <div className='h-7 w-7 sm:h-8 sm:w-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0 text-primary font-semibold text-xs sm:text-sm'>
           {index + 1}
         </div>
-        <div className='flex-1'>
-          <div className='flex items-start gap-2'>
-            <h3 className='text-base font-semibold text-foreground'>
+        <div className='flex-1 min-w-0'>
+          <div className='flex items-start gap-1'>
+            <h3 className='text-sm sm:text-base font-semibold text-foreground leading-snug'>
               {question.question || question.text || "Question"}
             </h3>
             {questionDescription && (
@@ -824,7 +824,7 @@ function QuestionCard({
                   <TooltipTrigger asChild>
                     <button
                       type='button'
-                      className='mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border border-border bg-background text-xs font-semibold text-muted-foreground hover:text-foreground'
+                      className='mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border bg-background text-xs font-semibold text-muted-foreground hover:text-foreground'
                       aria-label='Question description'
                     >
                       i
@@ -841,7 +841,7 @@ function QuestionCard({
       </div>
 
       {type === "checkbox" && (
-        <div className='space-y-3'>
+        <div className='space-y-2 sm:space-y-3'>
           {options.map((option, idx) => {
             const selectedOption = Array.isArray(answer)
               ? answer[0]
@@ -857,7 +857,7 @@ function QuestionCard({
                   onAnswer(question.id || "", updated);
                 }}
                 className={cn(
-                  "w-full text-left px-4 py-3 rounded-xl border-2 transition-all font-medium text-sm",
+                  "w-full text-left px-3 py-2.5 sm:px-4 sm:py-3 rounded-xl border sm:border-2 transition-all font-medium text-xs sm:text-sm leading-snug",
                   selected
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-card text-foreground hover:border-primary/50 hover:bg-primary/5",
@@ -871,13 +871,13 @@ function QuestionCard({
       )}
 
       {type === "binary" && (
-        <div className='flex gap-3'>
+        <div className='flex gap-2 sm:gap-3'>
           {[true, false].map((value, idx) => (
             <button
               key={`${question.id}-${idx}`}
               onClick={() => onAnswer(question.id || "", value)}
               className={cn(
-                "flex-1 px-4 py-3 rounded-xl border-2 font-medium transition-all",
+                "flex-1 px-3 py-2 sm:px-4 sm:py-3 rounded-xl border sm:border-2 font-medium text-sm sm:text-base transition-all",
                 answer === value
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-card text-foreground hover:border-primary/50",
